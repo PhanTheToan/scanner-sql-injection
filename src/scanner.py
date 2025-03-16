@@ -27,13 +27,24 @@ class SQLInjector:
         response = self.http_client.send_request(url)
         if not response:
             return False
-            
+
+        # Lưu mã nguồn HTML vào file
+        with open('source_code.html', 'w', encoding='utf-8') as f:
+            f.write(response.text)
+
         parser = HTMLParser(response.text, url)
         forms = parser.extract_forms()
-        
+    
+         # Lưu danh sách form vào file
+        with open('forms.txt', 'w', encoding='utf-8') as f:
+             for form in forms:
+               f.write(str(form) + '\n')
+    
+        self.forms = forms  # Lưu số lượng form được quét
+       
         for form in forms:
             self.test_form(form)
-        
+    
         return len(self.vulnerabilities) > 0
 
     def test_form(self, form):
@@ -69,7 +80,8 @@ class SQLInjector:
     def generate_report(self):
         return {
             'vulnerabilities': self.vulnerabilities,
-            'total': len(self.vulnerabilities)
+            'total': len(self.vulnerabilities),
+            'forms_scanned': len(self.forms) if hasattr(self, 'forms') else 0
         }
 def main():
     parser = argparse.ArgumentParser(

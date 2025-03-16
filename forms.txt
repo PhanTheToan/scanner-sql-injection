@@ -1,0 +1,2 @@
+{'action': 'http://weamis.com', 'method': 'GET', 'inputs': [{'type': 'email', 'name': None, 'value': ''}, {'type': 'text', 'name': None, 'value': ''}], 'enctype': 'application/x-www-form-urlencoded'}
+{'action': 'http://weamis.com', 'method': 'GET', 'inputs': [{'type': 'email', 'name': None, 'value': ''}, {'type': 'text', 'name': None, 'value': ''}], 'enctype': 'application/x-www-form-urlencoded'}
