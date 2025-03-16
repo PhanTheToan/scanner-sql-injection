@@ -1,30 +1,37 @@
 import unittest
-from src.scanner import Scanner  # Assuming Scanner is the main class in scanner.py
+import json
+from unittest.mock import patch
+from src.scanner import SQLInjector
 
-class TestScanner(unittest.TestCase):
-
-    def setUp(self):
-        self.scanner = Scanner()
-
-    def test_valid_input(self):
-        # Test with a valid input that should not trigger a vulnerability
-        result = self.scanner.scan("SELECT * FROM users WHERE id = 1")
-        self.assertFalse(result)
-
-    def test_sql_injection(self):
-        # Test with an input that is a potential SQL injection
-        result = self.scanner.scan("1; DROP TABLE users; --")
+class TestSQLScanner(unittest.TestCase):
+    @patch('src.http_client.HTTPClient.send_request')
+    def test_scan_url(self, mock_request):
+        # Mock response for vulnerable site
+        mock_request.return_value = MockResponse(
+            text="Error: unclosed quotation mark",
+            status_code=500
+        )
+        
+        scanner = SQLInjector()
+        result = scanner.scan_url('http://testvuln.com')
         self.assertTrue(result)
 
-    def test_empty_input(self):
-        # Test with an empty input
-        result = self.scanner.scan("")
+    @patch('src.http_client.HTTPClient.send_request')
+    def test_secure_site(self, mock_request):
+        # Mock response for secure site
+        mock_request.return_value = MockResponse(
+            text="Login successful",
+            status_code=200
+        )
+        
+        scanner = SQLInjector()
+        result = scanner.scan_url('http://securesite.com')
         self.assertFalse(result)
 
-    def test_malformed_input(self):
-        # Test with malformed SQL input
-        result = self.scanner.scan("SELECT * FROM users WHERE id = ' OR '1'='1")
-        self.assertTrue(result)
+class MockResponse:
+    def __init__(self, text, status_code):
+        self.text = text
+        self.status_code = status_code
 
 if __name__ == '__main__':
     unittest.main()

