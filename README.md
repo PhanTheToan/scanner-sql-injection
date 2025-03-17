@@ -1,7 +1,7 @@
 # SQL Scanner Injection
 
 This project is designed to identify potential SQL injection vulnerabilities in web applications. It includes a parser for HTML forms and a scanner that analyzes inputs for malicious payloads.
-
+- Run project: `python -m src.scanner --url http://testsite.com`
 ## Project Structure
 
 ```

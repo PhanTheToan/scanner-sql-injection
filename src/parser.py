@@ -1,6 +1,6 @@
 from bs4 import BeautifulSoup
-from urllib.parse import urlparse
-
+# from urllib.parse import urlparse
+from urllib.parse import urljoin
 class HTMLParser:
     SQL_ERRORS = [
         "quoted string not properly terminated",
