@@ -47,28 +47,32 @@ class SQLInjector:
     
         return len(self.vulnerabilities) > 0
 
-    def test_form(self, form):
-        for payload in self.payloads:
-            data = {}
-            for input_field in form['inputs']:
-                if input_field['type'] in ['hidden', 'submit']:
-                    data[input_field['name']] = input_field['value']
-                else:
-                    data[input_field['name']] = payload
+    def test_form(self, form, method='GET'):  
+     for payload in self.payloads:
+        data = {}
+        for input_field in form['inputs']:
+            if input_field['type'] in ['hidden', 'submit']:
+                data[input_field['name']] = input_field['value']
+            else:
+                data[input_field['name']] = payload
 
-            response = self.http_client.send_request(
-                url=form['action'],
-                method=form['method'],
-                data=data if form['method'] == 'POST' else None,
-                params=data if form['method'] == 'GET' else None
-            )
+        response = self.http_client.send_request(
+            url=form['action'],
+            method=method,
+            data=data if method == 'POST' else None,
+            params=data if method == 'GET' else None
+        )
 
-            if self.is_vulnerable(response):
-                self.vulnerabilities.append({
-                    'url': form['action'],
-                    'payload': payload,
-                    'form_details': form
-                })
+        if response is None:  # Kiểm tra response
+            logger.warning(f"Request failed for {form['action']} with payload {payload}")
+            continue  
+
+        if self.is_vulnerable(response):
+            self.vulnerabilities.append({
+                'url': form['action'],
+                'payload': payload,
+                'form_details': form
+            })
 
     def is_vulnerable(self, response):
         if not response:

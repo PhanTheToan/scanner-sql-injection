@@ -1,3 +1,4 @@
-{'action': 'https://megaedu.vn', 'method': 'GET', 'inputs': [{'type': 'text', 'name': None, 'value': ''}], 'enctype': 'application/x-www-form-urlencoded'}
+{'action': 'https://megaedu.vn/dang-nhap', 'method': 'GET', 'inputs': [{'type': 'text', 'name': None, 'value': ''}], 'enctype': 'application/x-www-form-urlencoded'}
 {'action': 'https://megaedu.vn/search', 'method': 'GET', 'inputs': [{'type': 'text', 'name': 'search', 'value': ''}], 'enctype': 'application/x-www-form-urlencoded'}
-{'action': 'https://megaedu.vn', 'method': 'POST', 'inputs': [{'type': 'hidden', 'name': '_token', 'value': 'ZG32ZyoOQ9YyyHNMUuIPjwOE0q9Y63Y0HKqoSvIJ'}], 'enctype': 'application/x-www-form-urlencoded'}
+{'action': 'https://megaedu.vn/dang-nhap', 'method': 'POST', 'inputs': [{'type': 'text', 'name': None, 'value': ''}, {'type': 'text', 'name': None, 'value': ''}], 'enctype': 'application/x-www-form-urlencoded'}
+{'action': 'https://megaedu.vn/dang-nhap', 'method': 'POST', 'inputs': [{'type': 'hidden', 'name': '_token', 'value': 'qtqAXl16ofrcMgmXccsNxs4RpoppKDJjmeJRBjKM'}], 'enctype': 'application/x-www-form-urlencoded'}

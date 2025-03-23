@@ -8,7 +8,7 @@ setup(
     description='A project for scanning SQL injection vulnerabilities',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
-    url='https://github.com/yourusername/sql-scanner-injection',
+    url='https://github.com/PhanTheToan/sql-scanner-injection',
     packages=find_packages(where='src'),
     package_dir={'': 'src'},
     install_requires=open('requirements.txt').read().splitlines(),
