@@ -1,0 +1,15 @@
+http:
+  timeout: 20
+  verify_ssl: true
+  user_agent: "Mozilla/5.0 (compatible; SQLScanner/2.0)"
+  proxies:
+    http: http://proxy.example.com:8080
+    https: http://proxy.example.com:8080
+
+scanner:
+  payload_file: data/payloads.txt
+  db_detection: auto
+  techniques:
+    - error_based
+    - blind
+    - time_based

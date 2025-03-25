@@ -1,4 +1,6 @@
 ./venv
 ./__pycache__
-./forms.txt
-./source_code.html
+.forms.txt
+.source_code.html
+./report_Week
+.report.html

@@ -1,116 +1,98 @@
-import logging
-from .http_client import HTTPClient
-from src.parser import HTMLParser
+import re
+import time
 import argparse
-import json
+import yaml
 import os
+import logging
+from collections import defaultdict
+from src.http_client import HTTPClient
+from src.models.vulnerability import Vulnerability
+from src.parser import AdvancedHTMLParser
+from src.utils.report_generator import ReportGenerator
 
 logger = logging.getLogger(__name__)
-class SQLInjector:
-    def __init__(self, payload_file='data/payloads.txt'):
-        self.payloads = self.load_payloads(payload_file)
-        self.http_client = HTTPClient()
+
+def load_config(file_path):
+    with open(file_path, 'r') as f:
+        return yaml.safe_load(f)
+
+class AdvancedSQLInjector:
+    def __init__(self, config_file='config.yaml'):
+        self.config = load_config(config_file)
+        self.http_client = HTTPClient(self.config['http'])
+        self.parser = AdvancedHTMLParser
+        self.payloads = self.load_payloads(self.config['scanner']['payload_file'])
         self.vulnerabilities = []
+        self.current_url = None
+        self.current_input = None
 
-    def load_payloads(self, file_path):
-        dir_path = os.path.dirname(os.path.realpath(__file__))
-        full_path = os.path.join(dir_path, '..', file_path)
-        try:
-            with open(full_path, 'r', encoding='utf-8') as f:
-             return [line.strip() for line in f if line.strip() and not line.startswith('#')]
-        except FileNotFoundError:
-            print(f"[!] Lỗi: Không tìm thấy file payloads tại {full_path}")
-            print("[!] Vui lòng tạo file payloads.txt trong thư mục data")
-            exit(1)
+    def load_payloads(self, payload_file):
+        with open(payload_file) as f:
+            return {
+                'generic': [],
+                'mysql': [],
+                'postgresql': [],
+                'mssql': []
+            }
 
-    def scan_url(self, url):
-        response = self.http_client.send_request(url)
-        if not response:
-            return False
+    def _detect_db_type(self, response):
+        # Tự động phát hiện loại database từ thông báo lỗi
+        for db_type, pattern in self.parser.SQL_ERROR_PATTERNS.items():
+            if re.search(pattern, response.text, re.IGNORECASE):
+                return db_type
+        return 'unknown'
 
-        # Lưu mã nguồn HTML vào file
-        with open('source_code.html', 'w', encoding='utf-8') as f:
-            f.write(response.text)
+    def _test_time_based_sqli(self, form, db_type):
+        # Triển khai logic time-based
+        test_payloads = [
+            "' OR SLEEP(5)--",
+            "' WAITFOR DELAY '0:0:5'--"
+        ]
+        for payload in test_payloads:
+            start_time = time.time()
+            response = self._send_payload(form, payload)
+            if response and (time.time() - start_time) > 4:
+                return True
+        return False
 
-        parser = HTMLParser(response.text, url)
-        forms = parser.extract_forms()
-    
-         # Lưu danh sách form vào file
-        with open('forms.txt', 'w', encoding='utf-8') as f:
-             for form in forms:
-               f.write(str(form) + '\n')
-    
-        self.forms = forms  # Lưu số lượng form được quét
-       
-        for form in forms:
-            self.test_form(form)
-    
-        return len(self.vulnerabilities) > 0
-
-    def test_form(self, form, method='GET'):  
-     for payload in self.payloads:
-        data = {}
-        for input_field in form['inputs']:
-            if input_field['type'] in ['hidden', 'submit']:
-                data[input_field['name']] = input_field['value']
-            else:
-                data[input_field['name']] = payload
-
-        response = self.http_client.send_request(
-            url=form['action'],
-            method=method,
-            data=data if method == 'POST' else None,
-            params=data if method == 'GET' else None
+    def _analyze_response(self, response, payload):
+        # Phân tích response nâng cao
+        db_type = self._detect_db_type(response)
+        vulnerability = Vulnerability(
+            name=f"SQL Injection ({db_type.upper()})",
+            description=f"Detected {db_type} SQL injection vulnerability",
+            severity='high',
+            payload=payload,
+            input_field=self.current_input,
+            url=self.current_url
         )
-
-        if response is None:  # Kiểm tra response
-            logger.warning(f"Request failed for {form['action']} with payload {payload}")
-            continue  
-
-        if self.is_vulnerable(response):
-            self.vulnerabilities.append({
-                'url': form['action'],
-                'payload': payload,
-                'form_details': form
-            })
-
-    def is_vulnerable(self, response):
-        if not response:
-            return False
-            
-        content = response.text.lower()
-        return any(error in content for error in HTMLParser.SQL_ERRORS)
+        self.vulnerabilities.append(vulnerability)
+    
+    def scan_url(self, url):
+        # Implement scan_url
+        pass
 
     def generate_report(self):
-        return {
-            'vulnerabilities': self.vulnerabilities,
-            'total': len(self.vulnerabilities),
-            'forms_scanned': len(self.forms) if hasattr(self, 'forms') else 0
-        }
+        # Implement generate_report
+        return self.vulnerabilities # Sửa ở đây
+
 def main():
     parser = argparse.ArgumentParser(
         description='SQL Injection Scanner - Automated Web Security Tool',
         epilog='Example: python -m src.scanner --url http://testsite.com/login --report report.json'
     )
     parser.add_argument('--url', required=True, help='Target URL to scan')
-    parser.add_argument('--payloads', default='data/payloads.txt', 
-                      help='Custom payloads file path')
+    parser.add_argument('--config', default='config.yaml', help='Path to config.yaml')
     parser.add_argument('--report', help='Output report file path')
 
     args = parser.parse_args()
 
-    scanner = SQLInjector(payload_file=args.payloads)
+    scanner = AdvancedSQLInjector(config_file=args.config)
     is_vulnerable = scanner.scan_url(args.url)
-    
-    if not is_vulnerable:
-        print(f"[!] Không tìm thấy lỗ hổng SQL Injection tại {args.url}")
-    
-    if args.report:
-        with open(args.report, 'w') as f:
-            json.dump(scanner.generate_report(), f, indent=2)
-        print(f"Report saved to {args.report}")
-    else:
-        print(json.dumps(scanner.generate_report(), indent=2))
+
+    report_generator = ReportGenerator()
+    report_file_path = report_generator.generate(scanner.generate_report())
+    print(f"Report saved to {report_file_path}")
 
 if __name__ == "__main__":
     main()

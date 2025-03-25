@@ -1,47 +1,56 @@
-from bs4 import BeautifulSoup
-# from urllib.parse import urlparse
+from bs4 import BeautifulSoup, SoupStrainer
 from urllib.parse import urljoin
-class HTMLParser:
-    SQL_ERRORS = [
-        "quoted string not properly terminated",
-        "unclosed quotation mark",
-        "sql syntax error"
-    ]
+
+class AdvancedHTMLParser:
+    SQL_ERROR_PATTERNS = {
+        'mysql': r"SQL syntax.*MySQL",
+        'postgresql': r"PostgreSQL.*ERROR",
+        'oracle': r"ORA-\d{5}",
+        'mssql': r"Microsoft SQL Server"
+    }
 
     def __init__(self, html_content, base_url):
-        self.soup = BeautifulSoup(html_content, 'html.parser')
+        self.strainer = SoupStrainer(['form', 'script'])
+        self.soup = BeautifulSoup(html_content, 'lxml', parse_only=self.strainer)
         self.base_url = base_url
+        self.dynamic_forms = []
+
+    def _detect_dynamic_forms(self):
+        # Phát hiện form được tạo bằng JavaScript
+        for script in self.soup.find_all('script'):
+            if 'document.createElement("form")' in script.text:
+                self._parse_dynamic_forms(script.text)
+
+    def _parse_dynamic_forms(self, script_content):
+        # Logic phân tích JavaScript để tìm form động
+        pass
 
     def extract_forms(self):
         forms = []
+        # Xử lý form tĩnh
         for form in self.soup.find_all('form'):
-            form_details = {
-                'action': self.get_form_action(form),
-                'method': form.get('method', 'get').upper(),
-                'inputs': self.get_form_inputs(form),
-                'enctype': form.get('enctype', 'application/x-www-form-urlencoded')
-            }
-            forms.append(form_details)
+            forms.append(self._parse_form(form))
+            
+        # Kết hợp form động
+        forms.extend(self.dynamic_forms)
         return forms
 
-    def get_form_action(self, form):
-        action = form.get('action')
-        if not action:
-            return self.base_url
-        return urljoin(self.base_url, action)
+    def _parse_form(self, form):
+        return {
+            'action': self._get_full_url(form.get('action')),
+            'method': form.get('method', 'get').upper(),
+            'inputs': self._get_form_inputs(form),
+            'attributes': form.attrs
+        }
 
-    def get_form_inputs(self, form):
+    def _get_form_inputs(self, form):
         inputs = []
         for tag in form.find_all(['input', 'textarea', 'select']):
-            input_details = {
-                'type': tag.get('type', 'text'),
-                'name': tag.get('name'),
-                'value': tag.get('value', '')
-            }
-            if tag.name == 'select':
-                input_details['options'] = [
-                    option.get('value') 
-                    for option in tag.find_all('option')
-                ]
-            inputs.append(input_details)
+            if tag.get('name'):
+                inputs.append({
+                    'type': tag.get('type', 'text'),
+                    'name': tag.get('name'),
+                    'value': tag.get('value', ''),
+                    'required': 'required' in tag.attrs
+                })
         return inputs
