@@ -3,8 +3,8 @@ http:
   verify_ssl: true
   user_agent: "Mozilla/5.0 (compatible; SQLScanner/2.0)"
   proxies:
-    http: http://proxy.example.com:8080
-    https: http://proxy.example.com:8080
+    http: ${HTTP_PROXY}
+    https: ${HTTPS_PROXY}
 
 scanner:
   payload_file: data/payloads.txt

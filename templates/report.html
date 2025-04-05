@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+ assignment    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SQL Injection Report</title>
     <style>
@@ -32,7 +32,9 @@
             text-align: left;
         }
         th {
-            background-color: #3498db;
+            background-color:
+
+ #3498db;
             color: #fff;
         }
         tr:nth-child(even) {
@@ -67,6 +69,8 @@
                 <th>Name</th>
                 <th>Description</th>
                 <th>Severity</th>
+                <th>Payload</th>
+                <th>Input Field</th>
                 <th>URL</th>
             </tr>
         </thead>
@@ -76,6 +80,8 @@
                     <td>{{ finding.name }}</td>
                     <td>{{ finding.description }}</td>
                     <td>{{ finding.severity }}</td>
+                    <td>{{ finding.payload }}</td>
+                    <td>{{ finding.input_field }}</td>
                     <td>{{ finding.url }}</td>
                 </tr>
             {% endfor %}

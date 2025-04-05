@@ -1,9 +1,10 @@
 from bs4 import BeautifulSoup, SoupStrainer
 from urllib.parse import urljoin
+import re
 
 class AdvancedHTMLParser:
     SQL_ERROR_PATTERNS = {
-        'mysql': r"SQL syntax.*MySQL",
+        'mysql': r"SQL syntax.*MySQL|SQLSTATE\[42000\]",
         'postgresql': r"PostgreSQL.*ERROR",
         'oracle': r"ORA-\d{5}",
         'mssql': r"Microsoft SQL Server"
@@ -16,22 +17,17 @@ class AdvancedHTMLParser:
         self.dynamic_forms = []
 
     def _detect_dynamic_forms(self):
-        # Phát hiện form được tạo bằng JavaScript
         for script in self.soup.find_all('script'):
             if 'document.createElement("form")' in script.text:
                 self._parse_dynamic_forms(script.text)
 
     def _parse_dynamic_forms(self, script_content):
-        # Logic phân tích JavaScript để tìm form động
         pass
 
     def extract_forms(self):
         forms = []
-        # Xử lý form tĩnh
         for form in self.soup.find_all('form'):
             forms.append(self._parse_form(form))
-            
-        # Kết hợp form động
         forms.extend(self.dynamic_forms)
         return forms
 
@@ -54,3 +50,6 @@ class AdvancedHTMLParser:
                     'required': 'required' in tag.attrs
                 })
         return inputs
+
+    def _get_full_url(self, action):
+        return urljoin(self.base_url, action) if action else self.base_url

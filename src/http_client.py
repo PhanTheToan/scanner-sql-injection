@@ -1,10 +1,18 @@
+import os
+import requests
 import logging
 import time
+import socket
 
-import requests
+logger = logging.getLogger(__name__)
 
-logger = logging.getLogger(__name__)  # Thêm dòng này
-
+def has_internet():
+    try:
+        socket.create_connection(("www.google.com", 80))
+        return True
+    except OSError:
+        return False
+    
 class HTTPClient:
     def __init__(self, config=None):
         self.session = requests.Session()
@@ -16,7 +24,19 @@ class HTTPClient:
             'retries': 3
         }
         if config:
-            self.config.update(config)
+            # Chỉ cập nhật các giá trị proxy hợp lệ
+            sanitized_config = {}
+            for k, v in config.items():
+                if k == 'proxies':
+                    sanitized_proxies = {}
+                    for pk, pv in v.items():
+                        # Bỏ qua nếu giá trị là chuỗi biến môi trường chưa thay thế hoặc rỗng
+                        if pv and not pv.startswith('${') and pv != '':
+                            sanitized_proxies[pk] = pv
+                    sanitized_config[k] = sanitized_proxies
+                else:
+                    sanitized_config[k] = v
+            self.config.update(sanitized_config)
             
         self.session.headers.update({
             'User-Agent': self.config['user_agent'],
@@ -24,10 +44,16 @@ class HTTPClient:
         })
 
     def send_advanced_request(self, url, method='GET', **kwargs):
+        # Nếu là localhost, không dùng proxy
+        if 'localhost' in url.lower() or '127.0.0.1' in url.lower():
+            proxies = {}
+        else:
+            proxies = self.config['proxies'] if self.config['proxies'] else {}
+        
         params = {
             'timeout': self.config['timeout'],
             'verify': self.config['verify_ssl'],
-            'proxies': self.config['proxies']
+            'proxies': proxies
         }
         params.update(kwargs)
         
@@ -44,4 +70,5 @@ class HTTPClient:
                 logger.error(f"Attempt {attempt+1} failed: {str(e)}")
                 if attempt == self.config['retries'] - 1:
                     return None
-                time.sleep(1) 
+                time.sleep(1)
+        print(self.config)
