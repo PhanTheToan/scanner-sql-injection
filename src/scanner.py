@@ -35,6 +35,80 @@ class AdvancedSQLInjector:
         self.vulnerabilities = []
         self.vuln_set = set()
         self.current_url = None
+        self.session = self.http_client.session
+        self._perform_login()
+
+    def _perform_login(self):
+        """Thực hiện đăng nhập nếu được bật trong config."""
+        if not self.config.get('login', {}).get('enabled', False):
+            logger.info("Login is disabled in config.")
+            return
+        
+        login_config = self.config['login']
+        url = login_config['url']
+        method = login_config.get('method', 'POST').upper()
+        data = login_config.get('data', {})
+        success_criteria = login_config.get('success_criteria', {})
+
+        status_codes = success_criteria.get('status_codes', [200])
+        required_cookies = success_criteria.get('cookies', [])
+        redirect_url = success_criteria.get('redirect_url', None)
+        content_contains = success_criteria.get('content_contains', None)
+
+        logger.info(f"Attempting login to {url} with method {method}")
+        try:
+            if method == 'POST':
+                response = self.session.post(url, data=data, timeout=self.config['http']['timeout'], allow_redirects=True)
+            else:
+                response = self.session.get(url, params=data, timeout=self.config['http']['timeout'], allow_redirects=True)
+            
+            response.raise_for_status()
+            logger.debug(f"Response status: {response.status_code}")
+            logger.debug(f"Cookies after login attempt: {self.session.cookies.get_dict()}")
+
+            # Kiểm tra các tiêu chí xác thực
+            success_conditions = []
+
+            # Status code
+            status_success = response.status_code in status_codes
+            success_conditions.append(status_success)
+            logger.debug(f"Status code check: {'Passed' if status_success else 'Failed'} (Got {response.status_code}, expected {status_codes})")
+
+            # Cookies
+            cookie_success = True
+            if required_cookies:
+                cookies = self.session.cookies.get_dict()
+                cookie_success = all(cookie in cookies for cookie in required_cookies)
+                success_conditions.append(cookie_success)
+                logger.debug(f"Cookies check: {'Passed' if cookie_success else 'Failed'} (Required: {required_cookies}, Got: {cookies})")
+            else:
+                success_conditions.append(True)  # Không yêu cầu cookie thì coi là pass
+
+            # Redirect URL
+            redirect_success = True
+            if redirect_url:
+                redirect_success = response.url == redirect_url
+                success_conditions.append(redirect_success)
+                logger.debug(f"Redirect check: {'Passed' if redirect_success else 'Failed'} (Got {response.url}, expected {redirect_url})")
+            else:
+                success_conditions.append(True)  # Không yêu cầu redirect thì coi là pass
+
+            # Content contains
+            content_success = True
+            if content_contains:
+                content_success = content_contains in response.text
+                success_conditions.append(content_success)
+                logger.debug(f"Content check: {'Passed' if content_success else 'Failed'} (Expected '{content_contains}' in response)")
+
+            # Đăng nhập thành công nếu ít nhất một điều kiện được thỏa mãn
+            if any(success_conditions):
+                logger.info("Login successful!")
+            else:
+                logger.warning("Login failed: No success criteria met.")
+                return
+
+        except Exception as e:
+            logger.warning(f"Login error: {str(e)}. Continuing without login.")
 
     def load_payloads(self, payload_file):
         payloads = {
@@ -66,9 +140,9 @@ class AdvancedSQLInjector:
         
         logger.debug(f"Sending payload '{payload}' to {url} on field '{input_field_name}'")
         if method == 'POST':
-            response = self.http_client.send_advanced_request(url, method='POST', data=data)
+            response = self.session.post(url, data=data, timeout=self.config['http']['timeout'])
         else:
-            response = self.http_client.send_advanced_request(url, method='GET', params=data)
+            response = self.session.get(url, params=data, timeout=self.config['http']['timeout'])
         return response
 
     def _detect_db_type(self, response_text):
@@ -82,7 +156,6 @@ class AdvancedSQLInjector:
         
         logger.debug(f"Response for payload '{payload}' on field '{input_field_name}': {response.text[:200]}...")
         
-        # Kiểm tra Error Based
         error_key = ('error', db_type, payload, input_field_name, self.current_url)
         is_error_based = any(re.search(pattern, response.text, re.IGNORECASE) for pattern in self.parser.SQL_ERROR_PATTERNS.values())
         logger.debug(f"Checking Error Based for '{payload}' on '{input_field_name}': {'Detected' if is_error_based else 'Not detected'}")
@@ -100,7 +173,6 @@ class AdvancedSQLInjector:
                 self.vuln_set.add(error_key)
                 logger.info(f"Found vulnerability: {vulnerability}")
 
-        # Kiểm tra Boolean Based
         boolean_key = ('boolean', db_type, payload, input_field_name, self.current_url)
         is_boolean_based = "Welcome" in response.text
         logger.debug(f"Checking Boolean Based for '{payload}' on '{input_field_name}': {'Detected' if is_boolean_based else 'Not detected'}")
@@ -118,7 +190,6 @@ class AdvancedSQLInjector:
                 self.vuln_set.add(boolean_key)
                 logger.info(f"Found vulnerability: {vulnerability}")
 
-        # Kiểm tra Time Based
         time_key = ('time', db_type, payload, input_field_name, self.current_url)
         elapsed_time = time.time() - start_time
         contains_delay = any(func in payload.upper() for func in ['SLEEP', 'WAITFOR', 'DELAY'])
@@ -140,16 +211,19 @@ class AdvancedSQLInjector:
 
     def scan_url(self, url):
         self.current_url = url
-        response = self.http_client.send_advanced_request(url)
+        logger.debug(f"Cookies before scanning: {self.session.cookies.get_dict()}")
+        response = self.session.get(url, timeout=self.config['http']['timeout'])
         if not response:
             logger.error(f"Failed to fetch {url}")
             return
         
+        logger.debug(f"Response status for {url}: {response.status_code}")
         parser_instance = self.parser(response.text, url)
         forms = parser_instance.extract_forms()
         logger.info(f"Found {len(forms)} forms on {url}")
         
         for form in forms:
+            logger.debug(f"Form action: {form['action']}, inputs: {[inp['name'] for inp in form['inputs']]}")
             for input_field in form['inputs']:
                 input_field_name = input_field['name']
                 for payload in self.payloads['all']:

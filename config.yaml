@@ -13,3 +13,18 @@ scanner:
     - error_based
     - blind
     - time_based
+
+login:
+  enabled: true
+  url: "http://localhost:8000/process.php"
+  method: "POST"
+  data:
+    username: "admin"
+    password: "admin123"
+  success_criteria:
+    status_codes: [200, 302]  # Chấp nhận 200 hoặc 302
+    cookies: ["PHPSESSID"]    # Kiểm tra cookie phiên
+    redirect_url: null        # Tùy chọn, ví dụ: "/dashboard.php"
+scan_urls:
+  - "http://localhost:8000/dashboard.php"
+  - "http://localhost:8000/profile.php"

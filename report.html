@@ -53,7 +53,7 @@
 </head>
 <body>
     <h1>SQL Injection Vulnerability Report</h1>
-    <p>Generated at: 2025-04-05T16:17:38.177560</p>
+    <p>Generated at: 2025-04-16T15:18:29.942246</p>
     <h2>Summary</h2>
     <p>Total Vulnerabilities: 14</p>
     <p>Severity Distribution:</p>
@@ -88,37 +88,10 @@
                 </tr>
             
                 <tr>
-                    <td>SQL Injection (UNKNOWN) - Boolean Based</td>
-                    <td>Detected unknown SQL injection vulnerability via successful login</td>
-                    <td>high</td>
-                    <td>' OR "1"="1"-- x</td>
-                    <td>username</td>
-                    <td>http://localhost:8000/index.php</td>
-                </tr>
-            
-                <tr>
-                    <td>SQL Injection (UNKNOWN) - Boolean Based</td>
-                    <td>Detected unknown SQL injection vulnerability via successful login</td>
-                    <td>high</td>
-                    <td>' UNION SELECT NULL,NULL,NULL-- x</td>
-                    <td>username</td>
-                    <td>http://localhost:8000/index.php</td>
-                </tr>
-            
-                <tr>
                     <td>SQL Injection (MYSQL) - Error Based</td>
                     <td>Detected mysql SQL injection vulnerability via error message</td>
                     <td>high</td>
                     <td>' WAITFOR DELAY '0:0:5'-- x</td>
-                    <td>username</td>
-                    <td>http://localhost:8000/index.php</td>
-                </tr>
-            
-                <tr>
-                    <td>SQL Injection (UNKNOWN) - Time Based</td>
-                    <td>Detected SQL injection vulnerability via time delay</td>
-                    <td>critical</td>
-                    <td>' OR SLEEP(5)-- x</td>
                     <td>username</td>
                     <td>http://localhost:8000/index.php</td>
                 </tr>
@@ -133,10 +106,37 @@
                 </tr>
             
                 <tr>
+                    <td>SQL Injection (UNKNOWN) - Time Based</td>
+                    <td>Detected SQL injection vulnerability via time delay</td>
+                    <td>critical</td>
+                    <td>' OR SLEEP(5)-- x</td>
+                    <td>username</td>
+                    <td>http://localhost:8000/index.php</td>
+                </tr>
+            
+                <tr>
                     <td>SQL Injection (UNKNOWN) - Boolean Based</td>
                     <td>Detected unknown SQL injection vulnerability via successful login</td>
                     <td>high</td>
                     <td>' OR '1'='1'-- x</td>
+                    <td>username</td>
+                    <td>http://localhost:8000/index.php</td>
+                </tr>
+            
+                <tr>
+                    <td>SQL Injection (UNKNOWN) - Boolean Based</td>
+                    <td>Detected unknown SQL injection vulnerability via successful login</td>
+                    <td>high</td>
+                    <td>' UNION SELECT NULL,NULL,NULL-- x</td>
+                    <td>username</td>
+                    <td>http://localhost:8000/index.php</td>
+                </tr>
+            
+                <tr>
+                    <td>SQL Injection (UNKNOWN) - Boolean Based</td>
+                    <td>Detected unknown SQL injection vulnerability via successful login</td>
+                    <td>high</td>
+                    <td>' OR "1"="1"-- x</td>
                     <td>username</td>
                     <td>http://localhost:8000/index.php</td>
                 </tr>
@@ -151,37 +151,10 @@
                 </tr>
             
                 <tr>
-                    <td>SQL Injection (UNKNOWN) - Boolean Based</td>
-                    <td>Detected unknown SQL injection vulnerability via successful login</td>
-                    <td>high</td>
-                    <td>' OR "1"="1"-- x</td>
-                    <td>password</td>
-                    <td>http://localhost:8000/index.php</td>
-                </tr>
-            
-                <tr>
-                    <td>SQL Injection (UNKNOWN) - Boolean Based</td>
-                    <td>Detected unknown SQL injection vulnerability via successful login</td>
-                    <td>high</td>
-                    <td>' UNION SELECT NULL,NULL,NULL-- x</td>
-                    <td>password</td>
-                    <td>http://localhost:8000/index.php</td>
-                </tr>
-            
-                <tr>
                     <td>SQL Injection (MYSQL) - Error Based</td>
                     <td>Detected mysql SQL injection vulnerability via error message</td>
                     <td>high</td>
                     <td>' WAITFOR DELAY '0:0:5'-- x</td>
-                    <td>password</td>
-                    <td>http://localhost:8000/index.php</td>
-                </tr>
-            
-                <tr>
-                    <td>SQL Injection (UNKNOWN) - Time Based</td>
-                    <td>Detected SQL injection vulnerability via time delay</td>
-                    <td>critical</td>
-                    <td>' OR SLEEP(5)-- x</td>
                     <td>password</td>
                     <td>http://localhost:8000/index.php</td>
                 </tr>
@@ -196,10 +169,37 @@
                 </tr>
             
                 <tr>
+                    <td>SQL Injection (UNKNOWN) - Time Based</td>
+                    <td>Detected SQL injection vulnerability via time delay</td>
+                    <td>critical</td>
+                    <td>' OR SLEEP(5)-- x</td>
+                    <td>password</td>
+                    <td>http://localhost:8000/index.php</td>
+                </tr>
+            
+                <tr>
                     <td>SQL Injection (UNKNOWN) - Boolean Based</td>
                     <td>Detected unknown SQL injection vulnerability via successful login</td>
                     <td>high</td>
                     <td>' OR '1'='1'-- x</td>
+                    <td>password</td>
+                    <td>http://localhost:8000/index.php</td>
+                </tr>
+            
+                <tr>
+                    <td>SQL Injection (UNKNOWN) - Boolean Based</td>
+                    <td>Detected unknown SQL injection vulnerability via successful login</td>
+                    <td>high</td>
+                    <td>' UNION SELECT NULL,NULL,NULL-- x</td>
+                    <td>password</td>
+                    <td>http://localhost:8000/index.php</td>
+                </tr>
+            
+                <tr>
+                    <td>SQL Injection (UNKNOWN) - Boolean Based</td>
+                    <td>Detected unknown SQL injection vulnerability via successful login</td>
+                    <td>high</td>
+                    <td>' OR "1"="1"-- x</td>
                     <td>password</td>
                     <td>http://localhost:8000/index.php</td>
                 </tr>
