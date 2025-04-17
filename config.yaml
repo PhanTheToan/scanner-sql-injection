@@ -13,7 +13,38 @@ scanner:
     - error_based
     - blind
     - time_based
-
+  additional_targets:
+    - http://localhost:8000/api/get_user.php?id=1 # Ví dụ API endpoint
+    - http://localhost:8000/search.php?query=test
+    - http://localhost:8000/admin/panel.php     # Ví dụ trang unlinked
+    - http://localhost:8000/search.php?query=test&category=books
+    # - /api/v2/items # Có thể dùng đường dẫn tương đối nếu muốn (cần xử lý trong code)
+  discovery:
+    enabled: true 
+    wordlist_file: data/common_paths.txt
+    extensions_to_append: [".php", ".html", ".txt", ".bak", ".old", ""] 
+    interesting_status_codes: [200, 201, 204, 301, 302, 307, 401, 403, 500]
+  api_definitions:
+    - path: "/api/get_user.php" # Đường dẫn (có thể là tương đối hoặc tuyệt đối)
+      method: "GET"
+      params_in: "query"       # Tham số nằm trong URL query
+      params_to_test: ["id", "user_id"] # Tên các tham số cần test
+    - path: "/api/update_user"
+      method: "POST"
+      params_in: "body_json"   # Tham số nằm trong JSON body
+      params_to_test: ["userId", "email", "profile.description"] # Test cả nested field
+      # Template JSON để inject payload. Dùng {PAYLOAD} làm placeholder.
+      json_template:
+          userId: 1
+          name: "Test User"
+          email: "test@example.com"
+          profile:
+              description: "Default description"
+              isActive: true
+    - path: "/api/search_items"
+      method: "POST"
+      params_in: "body_form" # Tham số nằm trong Form Body (x-www-form-urlencoded)
+      params_to_test: ["query", "category_id"]
 login:
   enabled: true
   url: "http://localhost:8000/process.php"

