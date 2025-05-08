@@ -9,7 +9,16 @@ export default function LogViewer() {
   const [isLoading, setIsLoading] = useState(true);
   const [autoScroll, setAutoScroll] = useState(true);
   const [filter, setFilter] = useState('');
-  
+  const [logfile, setLogfile] = useState('scanner.log');
+
+  // Lấy logfile từ localStorage chỉ trên client-side
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedLogfile = localStorage.getItem('logfile') || 'scanner.log';
+      setLogfile(storedLogfile);
+    }
+  }, []);
+
   // Define log entry type
   type LogEntry = {
     id: number;
@@ -18,17 +27,19 @@ export default function LogViewer() {
   };
 
   // Parse logs into structured format for better display
-  const parsedLogs = logs ? logs.split('\n').map((line, index) => {
-    let type: LogEntry['type'] = 'info';
-    if (line.toLowerCase().includes('error')) type = 'error';
-    if (line.toLowerCase().includes('warn')) type = 'warning';
-    if (line.toLowerCase().includes('success')) type = 'success';
-    
-    return { id: index, text: line, type };
-  }) : [];
-  
+  const parsedLogs = logs
+    ? logs.split('\n').map((line, index) => {
+        let type: LogEntry['type'] = 'info';
+        if (line.toLowerCase().includes('error')) type = 'error';
+        if (line.toLowerCase().includes('warn')) type = 'warning';
+        if (line.toLowerCase().includes('success')) type = 'success';
+
+        return { id: index, text: line, type };
+      })
+    : [];
+
   // Filter logs based on search term
-  const filteredLogs = parsedLogs.filter(log => 
+  const filteredLogs = parsedLogs.filter((log) =>
     log.text.toLowerCase().includes(filter.toLowerCase())
   );
 
@@ -39,12 +50,14 @@ export default function LogViewer() {
     ws.onopen = () => {
       setIsConnected(true);
       setIsLoading(false);
+      // Gửi tên file log tới server
+      ws.send(JSON.stringify({ logfile }));
     };
 
     ws.onmessage = (event) => {
       const message = JSON.parse(event.data);
       if (message.type === 'log') {
-        setLogs(prevLogs => message.data);
+        setLogs(message.data);
       }
     };
 
@@ -61,7 +74,7 @@ export default function LogViewer() {
     return () => {
       ws.close();
     };
-  }, []);
+  }, [logfile]);
 
   // Auto-scroll to bottom when new logs arrive
   useEffect(() => {
@@ -77,7 +90,7 @@ export default function LogViewer() {
   const handleReconnect = () => {
     window.location.reload();
   };
-  
+
   // Function to clear logs
   const handleClearLogs = () => {
     setLogs('');
@@ -87,7 +100,7 @@ export default function LogViewer() {
   const renderLogLine = (log: LogEntry) => {
     let icon;
     let textColor = 'text-gray-300';
-    
+
     switch (log.type) {
       case 'error':
         icon = <AlertCircle size={16} className="text-red-500 mr-2 flex-shrink-0" />;
@@ -120,15 +133,21 @@ export default function LogViewer() {
         <div className="flex items-center">
           <Terminal className="mr-2 text-blue-400" size={24} />
           <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
-            Real-Time Logs
+            Real-Time Logs ({logfile})
           </h2>
         </div>
         <div className="flex items-center space-x-2">
-          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${isConnected ? 'bg-green-900 text-green-400' : 'bg-red-900 text-red-400'}`}>
-            <span className={`w-2 h-2 mr-1 rounded-full ${isConnected ? 'bg-green-400' : 'bg-red-400'}`}></span>
+          <span
+            className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
+              isConnected ? 'bg-green-900 text-green-400' : 'bg-red-900 text-red-400'
+            }`}
+          >
+            <span
+              className={`w-2 h-2 mr-1 rounded-full ${isConnected ? 'bg-green-400' : 'bg-red-400'}`}
+            ></span>
             {isConnected ? 'Connected' : 'Disconnected'}
           </span>
-          <button 
+          <button
             onClick={handleReconnect}
             className="p-2 rounded-full hover:bg-gray-800 transition-colors"
             title="Reconnect"
@@ -181,7 +200,7 @@ export default function LogViewer() {
       </div>
 
       {/* Log container */}
-      <div 
+      <div
         id="log-container"
         className="bg-gray-950 rounded-md p-4 h-96 overflow-y-auto border border-gray-800 shadow-inner"
       >
@@ -193,13 +212,13 @@ export default function LogViewer() {
           </div>
         )}
       </div>
-      
+
       {/* Status footer */}
       <div className="mt-2 text-xs text-gray-500 flex justify-between">
-        <span>{filteredLogs.length} entries {filter && `(filtered from ${parsedLogs.length})`}</span>
         <span>
-          {isConnected ? 'Listening on ws://localhost:8081' : 'Connection closed'}
+          {filteredLogs.length} entries {filter && `(filtered from ${parsedLogs.length})`}
         </span>
+        <span>{isConnected ? `Listening on ws://localhost:8081 for ${logfile}` : 'Connection closed'}</span>
       </div>
     </div>
   );
