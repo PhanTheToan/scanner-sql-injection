@@ -11,22 +11,37 @@ export default function LogViewer() {
   const [filter, setFilter] = useState('');
   const [logfile, setLogfile] = useState('scanner.log');
 
-  // Lấy logfile từ localStorage chỉ trên client-side
+  // Theo dõi thay đổi của logfile trong localStorage và sự kiện tùy chỉnh
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const storedLogfile = localStorage.getItem('logfile') || 'scanner.log';
-      setLogfile(storedLogfile);
-    }
+    const updateLogfile = () => {
+      if (typeof window !== 'undefined') {
+        const storedLogfile = localStorage.getItem('logfile') || 'scanner.log';
+        setLogfile(storedLogfile);
+      }
+    };
+
+    // Cập nhật ngay khi mount
+    updateLogfile();
+
+    // Lắng nghe sự kiện logfile-updated từ InitialPrompt
+    const handleLogfileUpdated = (event: CustomEvent) => {
+      const newLogfile = event.detail || localStorage.getItem('logfile') || 'scanner.log';
+      setLogfile(newLogfile);
+    };
+
+    window.addEventListener('logfile-updated', handleLogfileUpdated as EventListener);
+
+    return () => {
+      window.removeEventListener('logfile-updated', handleLogfileUpdated as EventListener);
+    };
   }, []);
 
-  // Define log entry type
   type LogEntry = {
     id: number;
     text: string;
     type: 'info' | 'error' | 'warning' | 'success';
   };
 
-  // Parse logs into structured format for better display
   const parsedLogs = logs
     ? logs.split('\n').map((line, index) => {
         let type: LogEntry['type'] = 'info';
@@ -38,7 +53,6 @@ export default function LogViewer() {
       })
     : [];
 
-  // Filter logs based on search term
   const filteredLogs = parsedLogs.filter((log) =>
     log.text.toLowerCase().includes(filter.toLowerCase())
   );
@@ -50,14 +64,17 @@ export default function LogViewer() {
     ws.onopen = () => {
       setIsConnected(true);
       setIsLoading(false);
-      // Gửi tên file log tới server
       ws.send(JSON.stringify({ logfile }));
     };
 
     ws.onmessage = (event) => {
-      const message = JSON.parse(event.data);
-      if (message.type === 'log') {
-        setLogs(message.data);
+      try {
+        const message = JSON.parse(event.data);
+        if (message.type === 'log') {
+          setLogs((prevLogs) => prevLogs + message.data);
+        }
+      } catch (error) {
+        console.error('Error parsing WebSocket message:', error);
       }
     };
 
@@ -76,7 +93,6 @@ export default function LogViewer() {
     };
   }, [logfile]);
 
-  // Auto-scroll to bottom when new logs arrive
   useEffect(() => {
     if (autoScroll) {
       const logContainer = document.getElementById('log-container');
@@ -86,17 +102,14 @@ export default function LogViewer() {
     }
   }, [logs, autoScroll]);
 
-  // Function to handle manual reconnection
   const handleReconnect = () => {
     window.location.reload();
   };
 
-  // Function to clear logs
   const handleClearLogs = () => {
     setLogs('');
   };
 
-  // Render log line with appropriate icon
   const renderLogLine = (log: LogEntry) => {
     let icon;
     let textColor = 'text-gray-300';
@@ -128,7 +141,6 @@ export default function LogViewer() {
 
   return (
     <div className="bg-gray-900 text-white p-6 rounded-lg shadow-xl border border-gray-800">
-      {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center">
           <Terminal className="mr-2 text-blue-400" size={24} />
@@ -157,7 +169,6 @@ export default function LogViewer() {
         </div>
       </div>
 
-      {/* Controls */}
       <div className="flex items-center justify-between mb-4">
         <div className="relative w-64">
           <input
@@ -199,7 +210,6 @@ export default function LogViewer() {
         </div>
       </div>
 
-      {/* Log container */}
       <div
         id="log-container"
         className="bg-gray-950 rounded-md p-4 h-96 overflow-y-auto border border-gray-800 shadow-inner"
@@ -213,7 +223,6 @@ export default function LogViewer() {
         )}
       </div>
 
-      {/* Status footer */}
       <div className="mt-2 text-xs text-gray-500 flex justify-between">
         <span>
           {filteredLogs.length} entries {filter && `(filtered from ${parsedLogs.length})`}

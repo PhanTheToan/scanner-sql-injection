@@ -4,34 +4,53 @@ import path from "path";
 
 export function startWebSocketServer() {
   const wss = new WebSocketServer({ port: 8081 });
+  const lastSentContent: { [key: string]: string } = {};
 
   wss.on("connection", (ws) => {
     console.log("Client connected to WebSocket");
 
     ws.on("message", (message) => {
-      const { logfile } = JSON.parse(message.toString());
-      if (!logfile) return;
+      try {
+        console.log("Received message:", message.toString());
+        const { logfile } = JSON.parse(message.toString());
+        if (!logfile) return;
 
-      const projectDir = "/media/ptt/New Volume/HUST/2024.2/project2/scanner-sql-injection";
-      const logFilePath = path.resolve(projectDir, logfile);
+        const projectDir = "/media/ptt/New Volume/HUST/2024.2/project2/scanner-sql-injection";
+        const logFilePath = path.resolve(projectDir, logfile);
 
-      console.log("Watching logfile:", logFilePath);
+        console.log("Watching logfile:", logFilePath);
 
-      // Gửi nội dung log ban đầu
-      if (fs.existsSync(logFilePath)) {
-        const initialContent = fs.readFileSync(logFilePath, "utf8");
-        ws.send(JSON.stringify({ type: "log", data: initialContent }));
-      } else {
-        ws.send(JSON.stringify({ type: "log", data: "Log file not found" }));
-      }
-
-      // Theo dõi thay đổi file
-      fs.watchFile(logFilePath, (curr, prev) => {
-        if (curr.mtime > prev.mtime) {
-          const content = fs.readFileSync(logFilePath, "utf8");
-          ws.send(JSON.stringify({ type: "log", data: content }));
+        if (fs.existsSync(logFilePath)) {
+          const initialContent = fs.readFileSync(logFilePath, "utf8");
+          lastSentContent[logFilePath] = initialContent;
+          ws.send(JSON.stringify({ type: "log", data: initialContent }));
+        } else {
+          lastSentContent[logFilePath] = "";
+          ws.send(JSON.stringify({ type: "log", data: "Log file not found" }));
         }
-      });
+
+        fs.watchFile(logFilePath, { interval: 1000 }, (curr, prev) => {
+          if (curr.mtime > prev.mtime) {
+            try {
+              const currentContent = fs.readFileSync(logFilePath, "utf8");
+              const lastContent = lastSentContent[logFilePath] || "";
+              if (currentContent !== lastContent) {
+                const newContent = currentContent.slice(lastContent.length);
+                if (newContent.trim()) {
+                  console.log("Sending new log content:", newContent);
+                  ws.send(JSON.stringify({ type: "log", data: newContent }));
+                }
+                lastSentContent[logFilePath] = currentContent;
+              }
+            } catch (error) {
+              console.error("Error reading log file:", error);
+              ws.send(JSON.stringify({ type: "log", data: "Error reading log file" }));
+            }
+          }
+        });
+      } catch (error) {
+        console.error("Error processing WebSocket message:", error);
+      }
     });
 
     ws.on("close", () => {

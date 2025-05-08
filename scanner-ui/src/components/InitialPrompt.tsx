@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Scan, FileText, FileCode, Terminal, Settings, AlertCircle, CheckCircle, Lock, Unlock } from 'lucide-react';
+import { Scan, FileText, FileCode, Terminal, Settings, AlertCircle, CheckCircle, Lock, Unlock, XCircle } from 'lucide-react';
 
 export default function InitialPrompt() {
   const [url, setUrl] = useState('http://localhost:8000/');
@@ -24,6 +24,14 @@ export default function InitialPrompt() {
     if (savedReport) setReport(savedReport);
   }, []);
 
+  // Update localStorage and dispatch event when logfile changes
+  const handleLogfileChange = (newLogfile: string) => {
+    setLogfile(newLogfile);
+    localStorage.setItem('logfile', newLogfile);
+    // Dispatch custom event to notify LogViewer
+    window.dispatchEvent(new CustomEvent('logfile-updated', { detail: newLogfile }));
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement> | null) => {
     if (e) {
       e.preventDefault();
@@ -43,7 +51,6 @@ export default function InitialPrompt() {
       const data = await response.json();
       if (response.ok) {
         setStatus(`Thành công! Log: ${logfile}, Báo cáo: ${report}`);
-        localStorage.setItem('logfile', logfile);
         localStorage.setItem('report', report);
       } else {
         setError(data.error || 'Lỗi khi chạy scanner');
@@ -59,13 +66,44 @@ export default function InitialPrompt() {
     }
   };
 
-  // Function to get the appropriate status icon
+  const handleStop = async () => {
+    setStatus('Đang dừng...');
+    setError('');
+    setErrorDetails('');
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch('/api/stop-scanner', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        setStatus('Scanner đã dừng');
+        setIsSubmitting(false);
+      } else {
+        setError(data.message || 'Lỗi khi dừng scanner');
+        setErrorDetails(data.error || '');
+        setStatus('');
+        setIsSubmitting(false);
+      }
+    } catch (err) {
+      setError('Không thể kết nối tới server');
+      setErrorDetails(err instanceof Error ? err.message : String(err));
+      setStatus('');
+      setIsSubmitting(false);
+    }
+  };
+
   const getStatusIcon = () => {
     if (status && status.includes('Thành công')) {
       return <CheckCircle size={20} className="text-green-500" />;
+    } else if (status && status.includes('đã dừng')) {
+      return <XCircle size={20} className="text-yellow-500" />;
     } else if (error) {
       return <AlertCircle size={20} className="text-red-500" />;
-    } else if (status === 'Đang chạy...') {
+    } else if (status === 'Đang chạy...' || status === 'Đang dừng...') {
       return <Scan size={20} className="text-blue-500 animate-pulse" />;
     }
     return null;
@@ -73,7 +111,6 @@ export default function InitialPrompt() {
 
   return (
     <div className="bg-gray-900 text-white p-6 rounded-lg shadow-xl border border-gray-800">
-      {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center">
           <Scan className="mr-2 text-blue-400" size={24} />
@@ -84,7 +121,6 @@ export default function InitialPrompt() {
       </div>
 
       <div className="space-y-4">
-        {/* URL Field */}
         <div className="bg-gray-800 p-4 rounded-md border border-gray-700">
           <label className="flex items-center text-sm font-medium text-gray-300 mb-2">
             <Settings size={16} className="mr-2 text-blue-400" />
@@ -99,7 +135,6 @@ export default function InitialPrompt() {
           />
         </div>
 
-        {/* Config File with Toggle */}
         <div className="bg-gray-800 p-4 rounded-md border border-gray-700">
           <div className="flex items-center justify-between mb-2">
             <label className="flex items-center text-sm font-medium text-gray-300">
@@ -138,7 +173,6 @@ export default function InitialPrompt() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Report File */}
           <div className="bg-gray-800 p-4 rounded-md border border-gray-700">
             <label className="flex items-center text-sm font-medium text-gray-300 mb-2">
               <FileText size={16} className="mr-2 text-green-400" />
@@ -153,7 +187,6 @@ export default function InitialPrompt() {
             />
           </div>
 
-          {/* Log File */}
           <div className="bg-gray-800 p-4 rounded-md border border-gray-700">
             <label className="flex items-center text-sm font-medium text-gray-300 mb-2">
               <Terminal size={16} className="mr-2 text-yellow-400" />
@@ -162,14 +195,13 @@ export default function InitialPrompt() {
             <input
               type="text"
               value={logfile}
-              onChange={(e) => setLogfile(e.target.value)}
+              onChange={(e) => handleLogfileChange(e.target.value)}
               className="w-full bg-gray-950 text-white border border-gray-700 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="scanner.log"
             />
           </div>
         </div>
 
-        {/* Log Level */}
         <div className="bg-gray-800 p-4 rounded-md border border-gray-700">
           <label className="flex items-center text-sm font-medium text-gray-300 mb-2">
             <Settings size={16} className="mr-2 text-red-400" />
@@ -187,27 +219,36 @@ export default function InitialPrompt() {
           </select>
         </div>
 
-        {/* Submit Button */}
-        <button
-          onClick={() => handleSubmit(null)}
-          disabled={isSubmitting}
-          className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-md py-3 hover:from-blue-700 hover:to-purple-700 transition-all flex items-center justify-center"
-        >
-          {isSubmitting ? (
-            <>
-              <Scan className="animate-spin mr-2" size={18} />
-              Đang chạy...
-            </>
-          ) : (
-            <>
-              <Scan className="mr-2" size={18} />
-              Chạy Scanner
-            </>
+        <div className="flex space-x-4">
+          <button
+            onClick={() => handleSubmit(null)}
+            disabled={isSubmitting}
+            className={`flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-md py-3 hover:from-blue-700 hover:to-purple-700 transition-all flex items-center justify-center ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            {isSubmitting ? (
+              <>
+                <Scan className="animate-spin mr-2" size={18} />
+                Đang chạy...
+              </>
+            ) : (
+              <>
+                <Scan className="mr-2" size={18} />
+                Chạy Scanner
+              </>
+            )}
+          </button>
+          {isSubmitting && (
+            <button
+              onClick={handleStop}
+              className="flex-1 bg-gradient-to-r from-red-600 to-red-800 text-white rounded-md py-3 hover:from-red-700 hover:to-red-900 transition-all flex items-center justify-center"
+            >
+              <XCircle className="mr-2" size={18} />
+              Dừng Scanner
+            </button>
           )}
-        </button>
+        </div>
       </div>
 
-      {/* Status and Errors */}
       {(status || error) && (
         <div className={`mt-6 p-4 rounded-md border ${status ? 'bg-green-900/20 border-green-800' : 'bg-red-900/20 border-red-800'}`}>
           <div className="flex items-center">
