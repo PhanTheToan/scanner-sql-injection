@@ -10,9 +10,16 @@ export default function LogViewer() {
   const [autoScroll, setAutoScroll] = useState(true);
   const [filter, setFilter] = useState('');
   
+  // Define log entry type
+  type LogEntry = {
+    id: number;
+    text: string;
+    type: 'info' | 'error' | 'warning' | 'success';
+  };
+
   // Parse logs into structured format for better display
   const parsedLogs = logs ? logs.split('\n').map((line, index) => {
-    let type = 'info';
+    let type: LogEntry['type'] = 'info';
     if (line.toLowerCase().includes('error')) type = 'error';
     if (line.toLowerCase().includes('warn')) type = 'warning';
     if (line.toLowerCase().includes('success')) type = 'success';
@@ -70,14 +77,14 @@ export default function LogViewer() {
   const handleReconnect = () => {
     window.location.reload();
   };
-
+  
   // Function to clear logs
   const handleClearLogs = () => {
     setLogs('');
   };
 
   // Render log line with appropriate icon
-  const renderLogLine = (log) => {
+  const renderLogLine = (log: LogEntry) => {
     let icon;
     let textColor = 'text-gray-300';
     
