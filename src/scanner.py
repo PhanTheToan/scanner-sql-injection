@@ -7,6 +7,8 @@ from urllib.parse import urlparse, urljoin, parse_qs, urlencode, quote, unquote,
 import yaml
 import os
 import logging
+import threading
+import concurrent.futures
 from pathlib import Path
 import copy
 import requests # Import requests để bắt exception
@@ -108,6 +110,7 @@ class AdvancedSQLInjector:
         self.payloads = self.load_payloads(payload_file_path) # Dùng hàm load_payloads đã sửa
         self.vulnerabilities = []
         self.vuln_set = set()
+        self.vulnerability_lock = threading.Lock() # Khóa để đồng bộ hóa truy cập vào danh sách lỗ hổng
         self.session = self.http_client.session
         self.current_scan_target = None
 
@@ -272,9 +275,11 @@ class AdvancedSQLInjector:
                 description=f"Detected {db_type} SQL injection vulnerability via error message.",
                 severity='high', payload=payload, input_field=input_field_name, url=injection_point_url
             )
-            self.vulnerabilities.append(vuln); self.vuln_set.add(error_key)
-            logger.info(f"Found Error-Based vulnerability: {vuln}")
-
+            with self.vulnerability_lock: # Sử dụng lock
+                if error_key not in self.vuln_set: # Kiểm tra lại trong critical section
+                    self.vulnerabilities.append(vuln)
+                    self.vuln_set.add(error_key)
+                    logger.info(f"Found Error-Based vulnerability: {vuln}")
         # --- Boolean Based Check ---
         boolean_key = ('boolean', db_type, payload, input_field_name, injection_point_url)
         # Logic check Boolean cần cải thiện nhiều - hiện tại rất đơn giản
@@ -285,8 +290,11 @@ class AdvancedSQLInjector:
                 description=f"Detected potential {db_type} SQL injection via content change/keyword.",
                 severity='high', payload=payload, input_field=input_field_name, url=injection_point_url
             )
-            self.vulnerabilities.append(vuln); self.vuln_set.add(boolean_key)
-            logger.info(f"Found Boolean-Based vulnerability: {vuln}")
+            with self.vulnerability_lock: # Sử dụng lock
+                if boolean_key not in self.vuln_set: # Kiểm tra lại
+                    self.vulnerabilities.append(vuln)
+                    self.vuln_set.add(boolean_key)
+                    logger.info(f"Found Boolean-Based vulnerability: {vuln}")
 
         # --- Time Based Check ---
         time_key = ('time', db_type, payload, input_field_name, injection_point_url)
@@ -299,9 +307,11 @@ class AdvancedSQLInjector:
                 description=f"Detected SQL injection vulnerability via time delay (>{self.time_threshold}s).",
                 severity='critical', payload=payload, input_field=input_field_name, url=injection_point_url
             )
-            self.vulnerabilities.append(vuln); self.vuln_set.add(time_key)
-            logger.info(f"Found Time-Based vulnerability: {vuln}")
-
+            with self.vulnerability_lock: # Sử dụng lock
+                if time_key not in self.vuln_set: # Kiểm tra lại
+                    self.vulnerabilities.append(vuln)
+                    self.vuln_set.add(time_key)
+                    logger.info(f"Found Time-Based vulnerability: {vuln}")
     def _scan_url_parameters(self, target_url):
         """Phân tích và thử inject vào các tham số query của URL."""
         logger.debug(f"Scanning URL parameters for: {target_url}")
@@ -663,10 +673,32 @@ def main():
     final_target_list = sorted(list(targets_to_scan))
     logger.info(f"--- Starting scan for {len(final_target_list)} unique targets ---")
     scan_successful = True
+    max_workers = scanner.scanner_config.get('max_threads', min(10, os.cpu_count() + 4 if os.cpu_count() else 5))
+    logger.info(f"Using up to {max_workers} threads for scanning.")
     try:
-        for i, target_url in enumerate(final_target_list):
-            logger.info(f"Scanning target {i+1}/{len(final_target_list)}: {target_url}")
-            scanner.scan_target(target_url)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Tạo một future cho mỗi target
+            future_to_url = {executor.submit(scanner.scan_target, target_url): target_url for target_url in final_target_list}
+            
+            processed_count = 0
+            total_targets = len(final_target_list)
+
+            for future in concurrent.futures.as_completed(future_to_url):
+                target_url_completed = future_to_url[future]
+                processed_count += 1
+                try:
+                    future.result()  # Lấy kết quả hoặc exception nếu có
+                    logger.info(f"Finished scanning target {processed_count}/{total_targets}: {target_url_completed}")
+                except Exception as exc:
+                    logger.error(f"Target {target_url_completed} generated an exception: {exc}", exc_info=True)
+                    scan_successful = False # Đánh dấu thất bại nếu có lỗi nghiêm trọng trong một luồng
+                except KeyboardInterrupt: # Xử lý ngắt từ bàn phím trong luồng
+                    logger.warning(f"Scan for {target_url_completed} interrupted by user.")
+                    # Quyết định xem có nên hủy các future khác không
+                    # executor.shutdown(wait=False, cancel_futures=True) # Cần Python 3.9+
+                    # Hoặc đơn giản là để các luồng khác hoàn thành
+                    scan_successful = False
+                    break # Thoát khỏi vòng lặp chờ future
     except KeyboardInterrupt: logger.warning("Scan interrupted by user."); scan_successful = False
     except Exception as main_e: logger.critical(f"Uncaught exception during scan loop: {main_e}", exc_info=True); scan_successful = False
     finally: pass # OOB check nếu có

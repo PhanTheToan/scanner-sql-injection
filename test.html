@@ -1,4 +1,4 @@
-<div class="filter-tabs"></div>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -413,7 +413,7 @@
         <div class="header">
             <h1><i class="fas fa-shield-alt"></i> SQL Injection Vulnerability Report</h1>
             <div class="subtitle">Security Assessment Results</div>
-            <div class="generated-time">Generated at: {{ meta.generated_at }}</div>
+            <div class="generated-time">Generated at: 2025-05-22T00:47:24.025323</div>
         </div>
 
         <div class="actions-bar">
@@ -437,33 +437,49 @@
         <div class="content">
             <div class="stats-grid">
                 <div class="stat-card total">
-                    <div class="stat-number">{{ stats.total }}</div>
+                    <div class="stat-number">32</div>
                     <div class="stat-label">Total Vulnerabilities</div>
                 </div>
-                {% for severity, count in stats.severity_distribution.items() %}
-                <div class="stat-card {{ severity }}">
-                    <div class="stat-number">{{ count }}</div>
-                    <div class="stat-label">{{ severity.title() }}</div>
+                <div class="stat-card critical">
+                    <div class="stat-number">6</div>
+                    <div class="stat-label">Critical</div>
                 </div>
-                {% endfor %}
+                <div class="stat-card high">
+                    <div class="stat-number">26</div>
+                    <div class="stat-label">High</div>
+                </div>
+                <div class="stat-card medium">
+                    <div class="stat-number">0</div>
+                    <div class="stat-label">Medium</div>
+                </div>
+                <div class="stat-card low">
+                    <div class="stat-number">0</div>
+                    <div class="stat-label">Low</div>
+                </div>
             </div>
 
             <div class="severity-chart">
                 <div class="chart-title">
                     <i class="fas fa-chart-pie"></i> Severity Distribution
                 </div>
-                {% for severity, count in stats.severity_distribution.items() %}
-                {% set percentage = (count / stats.total * 100) | round(1) %}
                 <div class="severity-bar">
                     <div class="severity-label">
-                        <span>{{ severity.title() }}</span>
-                        <span>{{ count }} ({{ percentage }}%)</span>
+                        <span>Critical</span>
+                        <span>6 (18.8%)</span>
                     </div>
                     <div class="progress-bar">
-                        <div class="progress-fill {{ severity }}" style="width: {{ percentage }}%"></div>
+                        <div class="progress-fill critical" style="width: 18.8%"></div>
                     </div>
                 </div>
-                {% endfor %}
+                <div class="severity-bar">
+                    <div class="severity-label">
+                        <span>High</span>
+                        <span>26 (81.2%)</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill high" style="width: 81.2%"></div>
+                    </div>
+                </div>
             </div>
 
             <div class="table-container">
@@ -473,9 +489,8 @@
                     </div>
                     <div class="filter-tabs">
                         <button class="filter-tab active" onclick="filterBySeverity('all')">All</button>
-                        {% for severity in stats.severity_distribution.keys() %}
-                        <button class="filter-tab" onclick="filterBySeverity('{{ severity }}')">{{ severity.title() }}</button>
-                        {% endfor %}
+                        <button class="filter-tab" onclick="filterBySeverity('critical')">Critical</button>
+                        <button class="filter-tab" onclick="filterBySeverity('high')">High</button>
                     </div>
                 </div>
                 
@@ -497,17 +512,7 @@
                             </tr>
                         </thead>
                         <tbody id="vulnerabilityTableBody">
-                            {% for finding in findings %}
-                            <tr data-severity="{{ finding.severity }}">
-                                <td>{{ loop.index }}</td>
-                                <td>{{ finding.name }}</td>
-                                <td>{{ finding.description }}</td>
-                                <td><span class="severity-badge severity-{{ finding.severity }}">{{ finding.severity.upper() }}</span></td>
-                                <td><div class="payload-cell">{{ finding.payload }}</div></td>
-                                <td><span class="input-field-tag">{{ finding.input_field or 'N/A' }}</span></td>
-                                <td><div class="url-cell">{{ finding.url }}</div></td>
-                            </tr>
-                            {% endfor %}
+                            <!-- Vulnerability data will be populated here -->
                         </tbody>
                     </table>
                 </div>
@@ -527,41 +532,97 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script>
-        // Store original data for filtering
-        const vulnerabilityData = {{ findings | tojson }};
-        const statsData = {{ stats | tojson }};
-        let filteredData = [...vulnerabilityData];
+        // Sample vulnerability data (in production, this would come from your backend)
+        const vulnerabilities = [
+            {
+                name: "SQL Injection (UNKNOWN) - Time Based",
+                description: "Detected SQL injection vulnerability via time delay (>4s).",
+                severity: "critical",
+                payload: "' OR IF(1=1, SLEEP(5), 0)-- x",
+                inputField: "user_id",
+                url: "http://localhost:8000/api/get_user.php?id=1&user_id=%27%20OR%20IF%281%3D1%2C%20SLEEP%285%29%2C%200%29--%20x"
+            },
+            {
+                name: "SQL Injection (UNKNOWN) - Time Based",
+                description: "Detected SQL injection vulnerability via time delay (>4s).",
+                severity: "critical",
+                payload: "' OR IF(1=1, SLEEP(5), 0)-- x",
+                inputField: "password",
+                url: "http://localhost:8000/process.php"
+            },
+            {
+                name: "SQL Injection (UNKNOWN) - Time Based",
+                description: "Detected SQL injection vulnerability via time delay (>4s).",
+                severity: "critical",
+                payload: "' OR SLEEP(5)-- x",
+                inputField: "password",
+                url: "http://localhost:8000/process.php"
+            },
+            {
+                name: "SQL Injection (UNKNOWN) - Boolean Based",
+                description: "Detected potential unknown SQL injection via content change/keyword.",
+                severity: "high",
+                payload: "' OR '1'='1'-- x",
+                inputField: "password",
+                url: "http://localhost:8000/process.php"
+            },
+            {
+                name: "SQL Injection (UNKNOWN) - Boolean Based",
+                description: "Detected potential unknown SQL injection via content change/keyword.",
+                severity: "high",
+                payload: "' OR 1=1-- x",
+                inputField: "password",
+                url: "http://localhost:8000/process.php"
+            }
+            // Add more vulnerabilities as needed
+        ];
+
+        let filteredVulnerabilities = [...vulnerabilities];
         let currentFilter = 'all';
 
         // Initialize the page
         document.addEventListener('DOMContentLoaded', function() {
+            populateTable(vulnerabilities);
             setupSearch();
-            animateCards();
         });
+
+        function populateTable(data) {
+            const tbody = document.getElementById('vulnerabilityTableBody');
+            const noResults = document.getElementById('noResults');
+            
+            if (data.length === 0) {
+                tbody.innerHTML = '';
+                noResults.style.display = 'block';
+                return;
+            }
+            
+            noResults.style.display = 'none';
+            
+            tbody.innerHTML = data.map((vuln, index) => `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${vuln.name}</td>
+                    <td>${vuln.description}</td>
+                    <td><span class="severity-badge severity-${vuln.severity}">${vuln.severity.toUpperCase()}</span></td>
+                    <td><div class="payload-cell">${vuln.payload}</div></td>
+                    <td><span class="input-field-tag">${vuln.inputField}</span></td>
+                    <td><div class="url-cell">${vuln.url}</div></td>
+                </tr>
+            `).join('');
+        }
 
         function setupSearch() {
             const searchInput = document.getElementById('searchInput');
             searchInput.addEventListener('input', function() {
                 const searchTerm = this.value.toLowerCase();
-                const tableBody = document.getElementById('vulnerabilityTableBody');
-                const rows = tableBody.querySelectorAll('tr');
-                const noResults = document.getElementById('noResults');
-                let visibleCount = 0;
-
-                rows.forEach(row => {
-                    const text = row.textContent.toLowerCase();
-                    const matchesFilter = currentFilter === 'all' || row.dataset.severity === currentFilter;
-                    const matchesSearch = text.includes(searchTerm);
-                    
-                    if (matchesFilter && matchesSearch) {
-                        row.style.display = '';
-                        visibleCount++;
-                    } else {
-                        row.style.display = 'none';
-                    }
-                });
-
-                noResults.style.display = visibleCount === 0 ? 'block' : 'none';
+                const filtered = filteredVulnerabilities.filter(vuln => 
+                    vuln.name.toLowerCase().includes(searchTerm) ||
+                    vuln.description.toLowerCase().includes(searchTerm) ||
+                    vuln.payload.toLowerCase().includes(searchTerm) ||
+                    vuln.inputField.toLowerCase().includes(searchTerm) ||
+                    vuln.url.toLowerCase().includes(searchTerm)
+                );
+                populateTable(filtered);
             });
         }
 
@@ -574,25 +635,16 @@
             
             currentFilter = severity;
             
-            const tableBody = document.getElementById('vulnerabilityTableBody');
-            const rows = tableBody.querySelectorAll('tr');
-            const noResults = document.getElementById('noResults');
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            let visibleCount = 0;
-
-            rows.forEach(row => {
-                const matchesFilter = severity === 'all' || row.dataset.severity === severity;
-                const matchesSearch = searchTerm === '' || row.textContent.toLowerCase().includes(searchTerm);
-                
-                if (matchesFilter && matchesSearch) {
-                    row.style.display = '';
-                    visibleCount++;
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-
-            noResults.style.display = visibleCount === 0 ? 'block' : 'none';
+            if (severity === 'all') {
+                filteredVulnerabilities = [...vulnerabilities];
+            } else {
+                filteredVulnerabilities = vulnerabilities.filter(vuln => vuln.severity === severity);
+            }
+            
+            populateTable(filteredVulnerabilities);
+            
+            // Clear search when filtering
+            document.getElementById('searchInput').value = '';
         }
 
         function exportToExcel() {
@@ -607,19 +659,18 @@
                     // Summary sheet
                     const summaryData = [
                         ['SQL Injection Vulnerability Report'],
-                        ['Generated at:', '{{ meta.generated_at }}'],
+                        ['Generated at:', '2025-05-22T00:47:24.025323'],
                         [''],
                         ['Summary Statistics'],
-                        ['Total Vulnerabilities:', {{ stats.total }}],
-                        {% for severity, count in stats.severity_distribution.items() %}
-                        ['{{ severity.title() }}:', {{ count }}],
-                        {% endfor %}
+                        ['Total Vulnerabilities:', 32],
+                        ['Critical:', 6],
+                        ['High:', 26],
+                        ['Medium:', 0],
+                        ['Low:', 0],
                         [''],
                         ['Severity Distribution'],
-                        {% for severity, count in stats.severity_distribution.items() %}
-                        {% set percentage = (count / stats.total * 100) | round(1) %}
-                        ['{{ severity.title() }} ({{ percentage }}%)', '{{ count }} vulnerabilities'],
-                        {% endfor %}
+                        ['Critical (18.8%)', '6 vulnerabilities'],
+                        ['High (81.2%)', '26 vulnerabilities']
                     ];
                     
                     const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
@@ -630,14 +681,14 @@
                         ['#', 'Vulnerability Name', 'Description', 'Severity', 'Payload', 'Input Field', 'URL']
                     ];
                     
-                    vulnerabilityData.forEach((vuln, index) => {
+                    vulnerabilities.forEach((vuln, index) => {
                         vulnData.push([
                             index + 1,
                             vuln.name,
                             vuln.description,
                             vuln.severity.toUpperCase(),
                             vuln.payload,
-                            vuln.input_field || 'N/A',
+                            vuln.inputField,
                             vuln.url
                         ]);
                     });
@@ -678,37 +729,47 @@
         }
 
         function exportToPDF() {
-            alert('PDF export feature can be implemented with jsPDF library');
+            alert('PDF export feature will be implemented with a PDF library like jsPDF');
         }
 
         function generateSummary() {
-            let summary = 'Security Assessment Summary:\n\n';
-            {% for severity, count in stats.severity_distribution.items() %}
-            summary += '{{ "🔴" if severity == "critical" else "🟡" if severity == "high" else "🟢" if severity == "medium" else "⚪" }} {{ severity.title() }} Vulnerabilities: {{ count }}\n';
-            {% endfor %}
+            const critical = vulnerabilities.filter(v => v.severity === 'critical').length;
+            const high = vulnerabilities.filter(v => v.severity === 'high').length;
+            const medium = vulnerabilities.filter(v => v.severity === 'medium').length;
+            const low = vulnerabilities.filter(v => v.severity === 'low').length;
             
-            summary += '\nTotal: {{ stats.total }} vulnerabilities found\n\n';
-            summary += 'Recommendation:\n';
-            summary += '- Immediately address all critical vulnerabilities\n';
-            summary += '- Prioritize high-severity issues\n';
-            summary += '- Implement proper input validation and parameterized queries';
+            const summary = `
+Security Assessment Summary:
+
+🔴 Critical Vulnerabilities: ${critical}
+🟡 High Vulnerabilities: ${high}
+🟢 Medium Vulnerabilities: ${medium}
+⚪ Low Vulnerabilities: ${low}
+
+Total: ${critical + high + medium + low} vulnerabilities found
+
+Recommendation: 
+- Immediately address all critical vulnerabilities
+- Prioritize high-severity issues
+- Implement proper input validation and parameterized queries
+            `;
             
             alert(summary);
         }
 
-        // Add animations
+        // Add some animations
         function animateCards() {
             const cards = document.querySelectorAll('.stat-card');
             cards.forEach((card, index) => {
-                card.style.opacity = '0';
-                card.style.transform = 'translateY(20px)';
                 setTimeout(() => {
-                    card.style.transition = 'all 0.5s ease';
                     card.style.transform = 'translateY(0)';
                     card.style.opacity = '1';
                 }, index * 100);
             });
         }
+
+        // Call animation on load
+        window.addEventListener('load', animateCards);
     </script>
 </body>
 </html>

@@ -21,7 +21,7 @@ class HTTPClient:
             'verify_ssl': True,
             'user_agent': 'SQLScanner/2.0',
             'proxies': {},
-            'retries': 3
+            'retries': 1
         }
         if config:
             # Chỉ cập nhật các giá trị proxy hợp lệ

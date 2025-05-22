@@ -19,6 +19,7 @@ scanner:
     - http://localhost:8000/admin/panel.php     # Ví dụ trang unlinked
     - http://localhost:8000/search.php?query=test&category=books
     # - /api/v2/items # Có thể dùng đường dẫn tương đối nếu muốn (cần xử lý trong code)
+  max_threads: 10 
   discovery:
     enabled: true 
     wordlist_file: data/common_paths.txt
