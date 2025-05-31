@@ -9,6 +9,7 @@ import os
 import logging
 import threading
 import concurrent.futures
+import collections
 from pathlib import Path
 import copy
 import requests # Import requests để bắt exception
@@ -115,9 +116,9 @@ class AdvancedSQLInjector:
         self.current_scan_target = None
 
         # --- Đọc cấu hình quét mở rộng ---
-        self.additional_targets = self.scanner_config.get('additional_targets', [])
+        self.api_definitions = self._load_api_definitions()
+        self.additional_targets = self._load_additional_targets()
         self.discovery_config = self.scanner_config.get('discovery', {})
-        self.api_definitions = self.scanner_config.get('api_definitions', [])
         self.base_scan_url = None # Sẽ được gán trong main
 
         # --- Cấu hình Time-based ---
@@ -153,7 +154,92 @@ class AdvancedSQLInjector:
         except Exception as e:
             logger.error(f"Error loading payloads from {payload_file_abs}: {e}", exc_info=True)
             return []
+    def _load_api_definitions(self):
+        """Tải định nghĩa API từ file được chỉ định trong config hoặc từ inline config."""
+        api_defs_file_path_str = self.scanner_config.get('api_definitions_file')
+        inline_api_defs = self.scanner_config.get('api_definitions', [])
+        
+        loaded_definitions = []
 
+        if api_defs_file_path_str:
+            api_defs_file = Path(api_defs_file_path_str)
+            if not api_defs_file.is_file() and not api_defs_file.is_absolute():
+                 logger.debug(f"API definitions file '{api_defs_file_path_str}' not found directly, trying relative to 'data/' directory...")
+                 api_defs_file = Path('data') / api_defs_file_path_str
+            
+            if api_defs_file.is_file():
+                try:
+                    with open(api_defs_file, 'r', encoding='utf-8') as f:
+                        defs_from_file = yaml.safe_load(f)
+                        if isinstance(defs_from_file, list):
+                            loaded_definitions.extend(defs_from_file)
+                            logger.info(f"Successfully loaded {len(defs_from_file)} API definitions from {api_defs_file.resolve()}")
+                        else:
+                            logger.warning(f"API definitions file {api_defs_file.resolve()} does not contain a list of definitions. Skipping file.")
+                except yaml.YAMLError as e:
+                    logger.error(f"Error parsing YAML from API definitions file {api_defs_file.resolve()}: {e}")
+                except Exception as e:
+                    logger.error(f"Error reading API definitions file {api_defs_file.resolve()}: {e}", exc_info=True)
+            else:
+                logger.warning(f"Specified API definitions file was not found: '{api_defs_file_path_str}' (also checked as '{api_defs_file.resolve()}').")
+        
+        if inline_api_defs:
+            logger.info(f"Loading {len(inline_api_defs)} API definitions from inline 'scanner.api_definitions' in config.")
+            loaded_definitions.extend(inline_api_defs) 
+
+        if not loaded_definitions:
+            logger.info("No API definitions were loaded (neither from file nor inline). API scanning might be limited.")
+        else:
+            pass
+            
+        return loaded_definitions
+    def _load_additional_targets(self):
+        """Tải các mục tiêu bổ sung từ file hoặc từ inline config."""
+        additional_targets_file_path_str = self.scanner_config.get('additional_targets_file')
+        inline_targets_config = self.scanner_config.get('additional_targets', [])
+        
+        loaded_targets = []
+
+        if additional_targets_file_path_str:
+            file_path = Path(additional_targets_file_path_str)
+            if not file_path.is_file() and not file_path.is_absolute(): # Kiểm tra tương đối với 'data/'
+                file_path = Path('data') / additional_targets_file_path_str
+            
+            if file_path.is_file():
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        targets_from_file = yaml.safe_load(f)
+                        if isinstance(targets_from_file, list):
+                            for item in targets_from_file:
+                                if isinstance(item, dict) and 'url' in item:
+                                    loaded_targets.append(item)
+                                elif isinstance(item, str): 
+                                    loaded_targets.append({'url': item, '_is_simple_string': True})
+                                else:
+                                    logger.warning(f"Định dạng item không hợp lệ trong {file_path.resolve()}: {item}. Bỏ qua.")
+                            logger.info(f"Đã tải {len(loaded_targets)} mục tiêu bổ sung từ {file_path.resolve()}")
+                        else:
+                            logger.warning(f"File mục tiêu bổ sung {file_path.resolve()} không chứa danh sách. Bỏ qua.")
+                except yaml.YAMLError as e:
+                    logger.error(f"Lỗi parsing YAML từ file mục tiêu bổ sung {file_path.resolve()}: {e}")
+                except Exception as e:
+                    logger.error(f"Lỗi đọc file mục tiêu bổ sung {file_path.resolve()}: {e}", exc_info=True)
+            else:
+                logger.warning(f"Không tìm thấy file mục tiêu bổ sung: '{additional_targets_file_path_str}' (đã kiểm tra cả '{file_path.resolve()}').")
+        
+        if inline_targets_config:
+            logger.info(f"Đang tải {len(inline_targets_config)} mục tiêu bổ sung từ inline 'scanner.additional_targets'.")
+            for item in inline_targets_config:
+                if isinstance(item, str): 
+                    loaded_targets.append({'url': item, '_is_simple_string': True})
+                elif isinstance(item, dict) and 'url' in item: 
+                    loaded_targets.append(item)
+                else:
+                    logger.warning(f"Item '{item}' không được hỗ trợ trong 'additional_targets' inline. Bỏ qua.")
+        
+        if not loaded_targets:
+            logger.info("Không có mục tiêu bổ sung nào được tải (từ file hoặc inline).")
+        return loaded_targets
     def _perform_login(self):
         """Thực hiện đăng nhập nếu được bật trong config."""
         login_config = self.config.get('login', {})
@@ -376,87 +462,147 @@ class AdvancedSQLInjector:
                         response = self.http_client.send_advanced_request(**request_args)
                     except Exception as e: logger.error(f"Error sending form request for field '{input_field_name}': {e}")
                     if response is not None:
-                        # Gọi hàm phân tích ĐÚNG
                         self._analyze_inband_response(response, payload, input_field_name, start_time, form_action_url)
 
     def _scan_api_endpoint(self, target_url, api_def):
         """Quét một API endpoint dựa vào định nghĩa từ config."""
         method = api_def.get('method', 'GET').upper()
-        params_in = api_def.get('params_in', 'query')
+        
+        params_in = api_def.get('params_in', 'query')  
         params_to_test = api_def.get('params_to_test', [])
-        json_template = api_def.get('json_template', None)
+        body_template = api_def.get('body_template', api_def.get('json_template'))
+        custom_headers_from_def = api_def.get('headers', {}) 
 
-        if not params_to_test: logger.warning(f"No 'params_to_test' for API: {target_url}"); return
-        logger.info(f"Scanning API endpoint: {method} {target_url} (Params in: {params_in})")
+        if not params_to_test:
+            logger.warning(f"No 'params_to_test' defined for API: {method} {target_url}. Skipping.")
+            return
+        logger.info(f"Scanning API endpoint: {method} {target_url} (Params in: {params_in}, Testing: {params_to_test})")
 
-        base_json_body = {}
+        # Chuẩn bị base_body_data cho body_json (đã parse) hoặc body_xml (chuỗi)
+        base_body_data = None
         if params_in == 'body_json':
-            if isinstance(json_template, (dict, list)): base_json_body = json_template
-            elif isinstance(json_template, str):
-                try: base_json_body = json.loads(json_template)
-                except json.JSONDecodeError: logger.error(f"Invalid JSON template for API {target_url}"); return
-            else: logger.warning(f"No valid 'json_template' for API {target_url}. Using empty JSON.")
+            if isinstance(body_template, (dict, list)):
+                base_body_data = body_template
+            elif isinstance(body_template, str) and body_template.strip():
+                try:
+                    base_body_data = json.loads(body_template)
+                except json.JSONDecodeError:
+                    logger.error(f"Invalid JSON string in 'body_template' for API {target_url} with params_in 'body_json'. Skipping this API definition."); return
+            else: 
+                logger.warning(f"No valid 'body_template' for API {target_url} with 'body_json'. Will attempt to inject into an empty JSON object if 'params_to_test' are simple keys.")
+                base_body_data = {} 
+        elif params_in == 'body_xml':
+            if isinstance(body_template, str):
+                base_body_data = body_template
+            else:
+                logger.error(f"'body_template' (string) is required and must be a string for 'body_xml' for API {target_url}. Skipping this API definition."); return
 
-        for param_name in params_to_test:
-            logger.debug(f"Testing API parameter: '{param_name}' in {params_in}")
+        for param_name_to_inject in params_to_test:
+            logger.debug(f"Testing API parameter: '{param_name_to_inject}' in {params_in} for {method} {target_url}")
             for payload in self.payloads:
-                request_args = {'method': method, 'url': target_url, 'timeout': self.config.get('http',{}).get('timeout', 15)}
-                headers = {}
-                injection_url_or_target = target_url # URL để báo cáo
+                current_request_headers = self.http_client.session.headers.copy()
+                current_request_headers.update(custom_headers_from_def) # Header từ api_def sẽ ghi đè header session nếu trùng key
+
+                request_args = {
+                    'method': method,
+                    'url': target_url, 
+                    'timeout': self.config.get('http', {}).get('timeout', 15),
+                    'headers': current_request_headers
+                }
+                reporting_url_or_target_id = target_url 
 
                 try:
                     if params_in == 'query':
                         parsed_target = urlparse(target_url)
                         original_query_params = parse_qs(parsed_target.query, keep_blank_values=True)
-                        params_for_encode = {}
-                        for k, v_list in original_query_params.items(): params_for_encode[k] = v_list # Giữ list cho doseq
-                        # Xử lý param lồng nhau (ít phổ biến trong query)
-                        if '.' in param_name: logger.warning(f"Nested param '{param_name}' in query string not fully supported yet."); continue
-                        params_for_encode[param_name] = [payload] # Inject (luôn là list)
-                        injected_query = urlencode(params_for_encode, doseq=True, quote_via=quote)
-                        injection_url_or_target = urlunparse((parsed_target.scheme, parsed_target.netloc, parsed_target.path, parsed_target.params, injected_query, parsed_target.fragment))
-                        request_args['url'] = injection_url_or_target
+                        params_for_encode = {k: v_list[:] for k, v_list in original_query_params.items()} # Copy list
+                        
+                        if '.' in param_name_to_inject:
+                            logger.warning(f"Nested param format '{param_name_to_inject}' in query string (e.g., field.subfield) is not standard. Treating as a literal key name. Ensure your server handles this, or use 'field[subfield]' format if applicable.")
+                        
+                        params_for_encode[param_name_to_inject] = [payload] # Inject payload
+                        
+                        injected_query_string = urlencode(params_for_encode, doseq=True, quote_via=quote)
+                        reporting_url_or_target_id = urlunparse((parsed_target.scheme, parsed_target.netloc, parsed_target.path, parsed_target.params, injected_query_string, parsed_target.fragment))
+                        request_args['url'] = reporting_url_or_target_id
 
                     elif params_in == 'body_form':
-                        data_to_send = {param_name: payload}
-                        request_args['data'] = data_to_send
+                        form_data_to_send = {}
+                        if isinstance(body_template, dict):
+                            form_data_to_send.update(body_template)
+                        form_data_to_send[param_name_to_inject] = payload 
+                        request_args['data'] = form_data_to_send
+                        if 'Content-Type' not in current_request_headers: 
+                            current_request_headers['Content-Type'] = 'application/x-www-form-urlencoded'
 
                     elif params_in == 'body_json':
-                        headers['Content-Type'] = 'application/json'
-                        injected_body = copy.deepcopy(base_json_body)
-                        keys = param_name.split('.')
-                        target_obj = injected_body
+                        if base_body_data is None:
+                            logger.error(f"Base JSON data is not available for injection (param '{param_name_to_inject}'). Skipping payload '{payload}'."); continue
+                        
+                        if 'Content-Type' not in current_request_headers: 
+                             current_request_headers['Content-Type'] = 'application/json; charset=utf-8'
+                        
+                        
+                        injected_json_body = copy.deepcopy(base_body_data)
+                        keys_path = param_name_to_inject.split('.')
+                        current_level_obj = injected_json_body
+                        
                         try:
-                            for i, key in enumerate(keys):
-                                if i == len(keys) - 1:
-                                    # Kiểm tra dict hoặc list (để hỗ trợ index dạng số)
-                                    if isinstance(target_obj, dict): target_obj[key] = payload
-                                    elif isinstance(target_obj, list):
-                                        try: target_obj[int(key)] = payload # Thử index list
-                                        except (ValueError, IndexError): raise TypeError(f"Invalid list index '{key}'")
-                                    else: raise TypeError(f"Cannot set key/index '{key}' on type {type(target_obj)}")
-                                else:
-                                    if isinstance(target_obj, dict) and key in target_obj: target_obj = target_obj[key]
-                                    elif isinstance(target_obj, list):
-                                        try: target_obj = target_obj[int(key)] # Thử index list
-                                        except (ValueError, IndexError): raise KeyError(f"Invalid list index '{key}'")
-                                    else: raise KeyError(f"Intermediate key/index '{key}' not found or invalid type")
-                        except Exception as json_e: logger.error(f"Error injecting into JSON path '{param_name}': {json_e}"); continue
-                        request_args['data'] = json.dumps(injected_body)
+                            for i, key_part in enumerate(keys_path):
+                                if i == len(keys_path) - 1: 
+                                    if isinstance(current_level_obj, dict):
+                                        current_level_obj[key_part] = payload
+                                    elif isinstance(current_level_obj, list):
+                                        try: current_level_obj[int(key_part)] = payload 
+                                        except (ValueError, IndexError) as list_e:
+                                            raise TypeError(f"Invalid list index '{key_part}' for JSON path '{param_name_to_inject}': {list_e}")
+                                    else:
+                                        raise TypeError(f"Cannot set key/index '{key_part}' on non-dict/list type ({type(current_level_obj)}) at JSON path '{param_name_to_inject}'")
+                                else: 
+                                    if isinstance(current_level_obj, dict):
+                                        if key_part not in current_level_obj: 
+                                            current_level_obj[key_part] = {}
+                                        current_level_obj = current_level_obj[key_part]
+                                    elif isinstance(current_level_obj, list):
+                                        try: current_level_obj = current_level_obj[int(key_part)]
+                                        except (ValueError, IndexError) as list_e:
+                                            raise KeyError(f"Invalid list index '{key_part}' in JSON path '{param_name_to_inject}': {list_e}")
+                                    else:
+                                        raise KeyError(f"Intermediate key/index '{key_part}' in JSON path '{param_name_to_inject}' is not dict/list or not found.")
+                        except Exception as json_inject_e:
+                            logger.error(f"Error injecting payload into JSON path '{param_name_to_inject}': {json_inject_e}", exc_info=True); continue
+                        
+                        request_args['data'] = json.dumps(injected_json_body)
 
-                    else: logger.warning(f"Unsupported 'params_in': {params_in}"); continue
+                    elif params_in == 'body_xml': 
+                        if not isinstance(base_body_data, str): 
+                             logger.error(f"Base XML template (string) is not available for injection (param '{param_name_to_inject}'). Skipping."); continue
+                        
+                        if 'Content-Type' not in current_request_headers: 
+                            current_request_headers['Content-Type'] = 'application/xml; charset=utf-8'
+                        
+                        if param_name_to_inject not in base_body_data:
+                            logger.warning(f"Placeholder '{param_name_to_inject}' not found in XML template for API {target_url}. Payload '{payload}' might not be injected correctly. Sending template as is with other potential injections if any.")   
+                            injected_xml_string = base_body_data 
+                        else:
+                            injected_xml_string = base_body_data.replace(param_name_to_inject, payload)
+                        
+                        request_args['data'] = injected_xml_string.encode('utf-8') 
 
-                    if headers: request_args['headers'] = headers
+                    else:
+                        logger.warning(f"Unsupported 'params_in' type: '{params_in}' for API {target_url}. Skipping parameter '{param_name_to_inject}'."); continue
+                    
+                    request_args['headers'] = current_request_headers 
 
                     start_time = time.time()
                     response = self.http_client.send_advanced_request(**request_args)
 
                     if response is not None:
-                        # Gọi hàm phân tích ĐÚNG
-                        self._analyze_inband_response(response, payload, param_name, start_time, injection_url_or_target)
+                        # Sử dụng reporting_url_or_target_id vì nó chứa URL đầy đủ với payload cho GET
+                        self._analyze_inband_response(response, payload, param_name_to_inject, start_time, reporting_url_or_target_id)
 
-                except Exception as req_e:
-                    logger.error(f"Error during API request for param '{param_name}': {req_e}", exc_info=True)
+                except Exception as req_build_send_e:
+                    logger.error(f"Error during API request construction or sending for param '{param_name_to_inject}' in '{params_in}' on {method} {target_url}: {req_build_send_e}", exc_info=True)
 
     def discover_targets(self, base_url):
         """Khám phá các endpoint/file tiềm năng dựa trên wordlist."""
@@ -523,204 +669,399 @@ class AdvancedSQLInjector:
         logger.info(f"Discovery finished. Found {len(discovered)} potential targets.")
         return sorted(list(discovered))
 
-    def scan_target(self, target_url):
-        """Quét một target URL cụ thể (URL params, Forms, API definitions)."""
-        logger.info(f"--- Scanning Target: {target_url} ---")
-        self.current_scan_target = target_url # Lưu URL đang quét
+    def scan_target(self, target_input):
+        """
+        Quét một mục tiêu đầu vào.
+        target_input có thể là một URL string hoặc một dictionary (mục tiêu có cấu trúc).
+        """
+        if isinstance(target_input, str):
+            # Xử lý URL string đơn giản (ví dụ: từ discovery, args.url)
+            resolved_url = urljoin(self.base_scan_url, target_input)
+            self._scan_simple_url_target(resolved_url)
+        elif isinstance(target_input, dict) and 'url' in target_input:
+            # Xử lý mục tiêu có cấu trúc từ additional_targets.yaml
+            if target_input.get('_is_simple_string'): # Cờ đánh dấu URL string từ file/inline
+                resolved_url = urljoin(self.base_scan_url, target_input['url'])
+                self._scan_simple_url_target(resolved_url)
+            else:
+                self._scan_structured_target_object(target_input)
+        else:
+            logger.warning(f"Loại mục tiêu đầu vào không hợp lệ: {type(target_input)}. Bỏ qua.")
 
-        # --- 1. Kiểm tra và Quét API nếu khớp định nghĩa ---
-        matched_api_def = None
-        api_scanned = False
+    def _scan_simple_url_target(self, target_url):
+        """Quét một URL string đơn giản."""
+        logger.info(f"--- 🎯 Đang quét URL đơn giản: {target_url} ---")
+        self.current_scan_target = target_url
+
+        # 1. Kiểm tra và Quét API nếu URL khớp với một định nghĩa API
+        api_definition_matched_and_scanned = False
         try:
-            parsed_target = urlparse(target_url)
-            target_path = parsed_target.path or '/'
-            for api_def in self.api_definitions:
-                api_path = api_def.get('path')
-                if not api_path: continue
-                # So khớp path chuẩn hóa
-                normalized_target_path = target_path.rstrip('/') if target_path != '/' else '/'
-                abs_api_url = urljoin(self.base_scan_url, api_path)
-                normalized_api_path = urlparse(abs_api_url).path.rstrip('/') if urlparse(abs_api_url).path != '/' else '/'
-                if normalized_target_path == normalized_api_path:
-                    matched_api_def = api_def
-                    logger.info(f"Target URL matches API definition: '{api_path}'. Running API scan.")
-                    self._scan_api_endpoint(target_url, matched_api_def)
-                    api_scanned = True
-                    break # Chỉ quét theo định nghĩa API đầu tiên khớp
-        except Exception as api_scan_e:
-            logger.error(f"Error during API definition matching/scan for {target_url}: {api_scan_e}", exc_info=True)
+            parsed_target_url = urlparse(target_url)
+            target_path = parsed_target_url.path or '/'
+            normalized_target_path = target_path.rstrip('/') if target_path != '/' else '/'
 
-        # --- 2. Quét tham số URL ---
-        # Luôn quét tham số URL trừ khi nó là API đã được quét? Có thể cấu hình
-        # if not api_scanned or self.scanner_config.get('scan_url_params_for_apis', False):
+            for api_def in self.api_definitions:
+                api_def_path = api_def.get('path')
+                if not api_def_path:
+                    continue
+
+                abs_api_url_from_def = urljoin(self.base_scan_url, api_def_path)
+                normalized_api_path_from_def = urlparse(abs_api_url_from_def).path.rstrip('/') if urlparse(abs_api_url_from_def).path != '/' else '/'
+
+                if normalized_target_path == normalized_api_path_from_def:
+                    logger.info(f"URL {target_url} khớp với định nghĩa API '{api_def_path}'. Chạy quét API chuyên dụng.")
+                    self._scan_api_endpoint(target_url, api_def) # target_url đã được resolve
+                    api_definition_matched_and_scanned = True
+                    break  # Chỉ quét theo định nghĩa API đầu tiên khớp
+        except Exception as api_match_exc:
+            logger.error(f"Lỗi trong quá trình khớp/quét định nghĩa API cho {target_url}: {api_match_exc}", exc_info=True)
+
+        # 2. Quét tham số URL (luôn chạy, trừ khi có cấu hình khác)
+        # if not api_definition_matched_and_scanned or self.scanner_config.get('scan_url_params_anyway', True):
         try:
             self._scan_url_parameters(target_url)
-        except Exception as url_scan_e:
-            logger.error(f"Error scanning URL parameters for {target_url}: {url_scan_e}", exc_info=True)
+        except Exception as url_scan_exc:
+            logger.error(f"Lỗi quét tham số URL cho {target_url}: {url_scan_exc}", exc_info=True)
 
-        # --- 3. Quét Form nếu là HTML ---
-        # Chỉ quét form nếu target không phải là API đã được quét (tránh GET/POST thừa)
-        if not api_scanned:
-            try:
-                content_type = ""
-                response_for_forms = None
+        # 3. Quét Form HTML (chỉ chạy nếu không phải API đã quét, hoặc theo cấu hình)
+        # if not api_definition_matched_and_scanned or self.scanner_config.get('scan_forms_anyway', False):
+        try:
+            self._fetch_and_scan_forms_on_url(target_url)
+        except Exception as form_scan_exc:
+            logger.error(f"Lỗi trong pha quét form cho {target_url}: {form_scan_exc}", exc_info=True)
+
+    def _fetch_and_scan_forms_on_url(self, target_url):
+        """Lấy nội dung URL và quét các form HTML nếu có."""
+        try:
+            content_type = ""
+            head_response = self.http_client.send_advanced_request(target_url, method='HEAD', timeout=self.config.get('http', {}).get('timeout', 5))
+            if head_response and head_response.headers:
+                content_type = head_response.headers.get('Content-Type', '').lower()
+
+            should_fetch_body = 'text/html' in content_type or not content_type
+            if not should_fetch_body and head_response and head_response.status_code == 405: # Method Not Allowed for HEAD
+                logger.debug(f"HEAD request tới {target_url} bị từ chối (405). Thử GET để quét form.")
+                should_fetch_body = True
+
+
+            if should_fetch_body:
+                logger.debug(f"Đang lấy nội dung để quét form tiềm năng: {target_url}")
+                get_response = self.http_client.send_advanced_request(target_url, method='GET')
+
+                if get_response and get_response.text and \
+                   'text/html' in get_response.headers.get('Content-Type', '').lower():
+                    self.parser = AdvancedHTMLParser(get_response.text, target_url) # target_url đã resolve
+                    forms = self.parser.extract_forms()
+                    if forms:
+                        logger.info(f"Tìm thấy {len(forms)} form trên {target_url}. Đang quét form.")
+                        self._scan_html_forms(forms, target_url)
+                    else:
+                        logger.debug(f"Không tìm thấy form nào trên trang HTML: {target_url}")
+                # else:
+                    # logger.debug(f"Nội dung của {target_url} (GET) không phải HTML hoặc không lấy được. Bỏ qua quét form.")
+            # elif 'text/html' not in content_type and content_type: # Content-Type xác định không phải HTML
+                # logger.debug(f"Content-Type của {target_url} là '{content_type}', không phải HTML. Bỏ qua quét form.")
+
+        except requests.exceptions.RequestException as req_ex:
+            logger.warning(f"Request lỗi khi lấy form từ {target_url}: {req_ex}. Bỏ qua quét form.")
+        except Exception as e:
+            logger.error(f"Lỗi không xác định khi lấy và quét form từ {target_url}: {e}", exc_info=True)
+
+    def _scan_structured_target_object(self, structured_target_def):
+        """Quét một mục tiêu được định nghĩa có cấu trúc (từ additional_targets.yaml)."""
+        target_url_from_def = structured_target_def['url']
+        target_url = urljoin(self.base_scan_url, target_url_from_def) 
+
+        method = structured_target_def.get('method', 'GET').upper()
+        base_data_template = structured_target_def.get('base_data', {})
+        params_in = structured_target_def.get('params_in') 
+        params_to_test_list = structured_target_def.get('params_to_test', [])
+        custom_headers = structured_target_def.get('headers', {})
+
+        logger.info(f"--- 🧱 Đang quét mục tiêu có cấu trúc: {method} {target_url} ---")
+        self.current_scan_target = target_url
+
+        if method == 'GET' and not params_to_test_list:
+            logger.debug(f"Mục tiêu GET có cấu trúc {target_url} không có 'params_to_test'. Sẽ quét các tham số query trong URL và form.")
+            self._scan_url_parameters(target_url)
+            self._fetch_and_scan_forms_on_url(target_url)
+            return
+        if base_data_template and not params_to_test_list and method in ['POST', 'PUT']:
+            params_to_test_list = list(base_data_template.keys()) # Mặc định test tất cả key trong base_data
+            logger.debug(f"Mục tiêu {method} {target_url} có 'base_data' nhưng không 'params_to_test'. Mặc định test: {params_to_test_list}")
+
+        if not params_to_test_list:
+            logger.warning(f"Không có tham số để kiểm thử cho mục tiêu có cấu trúc {method} {target_url}.")
+            if method == 'GET': self._fetch_and_scan_forms_on_url(target_url) # Vẫn có thể có form
+            return
+
+        for param_name_to_inject in params_to_test_list:
+            logger.debug(f"Kiểm thử tham số của mục tiêu cấu trúc: '{param_name_to_inject}' trong {method} {target_url}")
+            for payload in self.payloads:
+                request_headers = self.http_client.session.headers.copy()
+                request_headers.update(custom_headers) 
+                request_args = {
+                    'method': method,
+                    'url': target_url,
+                    'timeout': self.config.get('http', {}).get('timeout', 15),
+                    'headers': request_headers
+                }
+                injection_point_id = f"{target_url}|{method}|{params_in or 'query'}|{param_name_to_inject}"
+
                 try:
-                    head_response = self.http_client.send_advanced_request(target_url, method='HEAD', timeout=3)
-                    if head_response: content_type = head_response.headers.get('Content-Type', '').lower()
-                except Exception: pass
+                    if method == 'GET':
+                        parsed_original_url = urlparse(target_url)
+                        original_query_dict = parse_qs(parsed_original_url.query, keep_blank_values=True)
+                        injected_query_data = {k: v_list[:] for k, v_list in original_query_dict.items()}
+                        injected_query_data[param_name_to_inject] = [payload]
+                        injected_query_string = urlencode(injected_query_data, doseq=True, quote_via=quote)
+                        final_url_for_get = urlunparse((parsed_original_url.scheme, parsed_original_url.netloc, parsed_original_url.path, parsed_original_url.params, injected_query_string, parsed_original_url.fragment))
+                        request_args['url'] = final_url_for_get
+                        injection_point_id = final_url_for_get
 
-                fetch_body_for_forms = False
-                if 'text/html' in content_type: fetch_body_for_forms = True
-                elif not content_type: fetch_body_for_forms = True # Thử GET nếu không biết type
+                    elif method in ['POST', 'PUT']:
+                        data_to_send = copy.deepcopy(base_data_template) if base_data_template else {}
+                        if params_in == 'body_json':
+                            if 'Content-Type' not in request_headers:
+                                request_headers['Content-Type'] = 'application/json; charset=utf-8'
+                            keys_path = param_name_to_inject.split('.')
+                            current_level_obj = data_to_send
+                            for i, key_part in enumerate(keys_path):
+                                if i == len(keys_path) - 1:
+                                    if isinstance(current_level_obj, dict): current_level_obj[key_part] = payload
+                                    elif isinstance(current_level_obj, list): current_level_obj[int(key_part)] = payload
+                                    else: raise TypeError(f"Không thể gán key '{key_part}' cho {type(current_level_obj)}")
+                                else:
+                                    if isinstance(current_level_obj, dict):
+                                        if key_part not in current_level_obj: current_level_obj[key_part] = {}
+                                        current_level_obj = current_level_obj[key_part]
+                                    elif isinstance(current_level_obj, list): current_level_obj = current_level_obj[int(key_part)]
+                                    else: raise KeyError(f"Key trung gian '{key_part}' không hợp lệ")
+                            request_args['data'] = json.dumps(data_to_send)
+                        elif params_in == 'body_form' or not params_in:
+                            if 'Content-Type' not in request_headers:
+                                request_headers['Content-Type'] = 'application/x-www-form-urlencoded'
+                            data_to_send[param_name_to_inject] = payload
+                            request_args['data'] = data_to_send
+                        else:
+                            logger.warning(f"Kiểu 'params_in': '{params_in}' không được hỗ trợ cho {method} {target_url}. Bỏ qua.")
+                            continue
+                    else: 
+                        logger.debug(f"Method {method} không hỗ trợ inject body params trong mục tiêu cấu trúc. Bỏ qua.")
+                        continue
 
-                if fetch_body_for_forms:
-                    logger.debug(f"Fetching content for potential form scan: {target_url}")
-                    response_for_forms = self.http_client.send_advanced_request(target_url, method='GET')
-                    if response_for_forms and 'text/html' in response_for_forms.headers.get('Content-Type', '').lower():
-                        # Cập nhật base_url cho parser dựa trên URL hiện tại
-                        self.parser = AdvancedHTMLParser(response_for_forms.text, target_url)
-                        forms = self.parser.extract_forms()
-                        if forms:
-                            logger.info(f"Found {len(forms)} forms on {target_url}. Scanning forms.")
-                            self._scan_html_forms(forms, target_url) # Truyền target_url làm base
-                        else: logger.debug(f"No forms found on HTML page: {target_url}")
-                    # else: logger.debug(f"Target {target_url} content not HTML or fetch failed. Skipping form scan.")
-            except Exception as form_scan_e:
-                logger.error(f"Error during form scanning phase for {target_url}: {form_scan_e}", exc_info=True)
-        else:
-            logger.debug(f"Skipping form scan for {target_url} as it was scanned as a defined API.")
+                    request_args['headers'] = request_headers 
+
+                    start_time = time.time()
+                    response = self.http_client.send_advanced_request(**request_args)
+                    if response:
+                        self._analyze_inband_response(response, payload, param_name_to_inject, start_time, injection_point_id)
+                except Exception as req_ex:
+                    logger.error(f"Lỗi request cho tham số '{param_name_to_inject}' của mục tiêu cấu trúc ({method} {target_url}): {req_ex}", exc_info=True)
+
+        if method == 'GET':
+            self._fetch_and_scan_forms_on_url(target_url)
 
     def generate_report(self):
         """Trả về danh sách các lỗ hổng tìm thấy, đã sắp xếp."""
         self.vulnerabilities.sort(key=lambda v: (v.url, v.input_field or '', v.severity))
         return self.vulnerabilities
 def main():
-    # --- Argparse Setup (giữ nguyên) ---
+    # --- Thiết lập Argparse ---
     parser = argparse.ArgumentParser(
         description='Advanced SQL Injection Scanner with Discovery & API Support',
-        epilog='Example: python -m src.scanner --url http://localhost:8000/ --config config.yaml --report report.html --logfile scan.log'
+        epilog='Example: python -m src.scanner --url http://localhost:8000/ --config config.yaml --report report.html'
     )
     parser.add_argument('--url', required=True, help='Base Target URL for scanning and discovery')
     parser.add_argument('--config', default='config.yaml', help='Path to config.yaml')
     parser.add_argument('--report', default='report.html', help='Output report file path')
-    parser.add_argument('--loglevel', default='INFO', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], help='Set logging level for console and file')
+    parser.add_argument('--loglevel', default='INFO', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], help='Set logging level')
     parser.add_argument('--logfile', help='Optional: Path to save the log output file.')
     args = parser.parse_args()
 
+    # --- Thiết lập Logging ---
     log_level = getattr(logging, args.loglevel.upper(), logging.INFO)
     log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     log_datefmt = '%Y-%m-%d %H:%M:%S'
     formatter = logging.Formatter(log_format, datefmt=log_datefmt)
-
-    root_logger = logging.getLogger()
+    root_logger = logging.getLogger() # Lấy root logger
     root_logger.setLevel(log_level)
-
-    for handler in root_logger.handlers[:]:
-        root_logger.removeHandler(handler)
-
+    for handler in root_logger.handlers[:]: root_logger.removeHandler(handler) # Xóa handler cũ
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setFormatter(formatter)
-
     root_logger.addHandler(console_handler)
-
     if args.logfile:
         try:
             log_dir = os.path.dirname(args.logfile)
-            if log_dir and not os.path.exists(log_dir):
-                os.makedirs(log_dir, exist_ok=True)
-                logger.info(f"Created log directory: {log_dir}") 
-
+            if log_dir and not os.path.exists(log_dir): os.makedirs(log_dir, exist_ok=True)
             file_handler = logging.FileHandler(args.logfile, mode='a', encoding='utf-8')
             file_handler.setFormatter(formatter)
             root_logger.addHandler(file_handler)
-            logging.info(f"Logging enabled to file: {args.logfile}")
+            logging.info(f"Logging được kích hoạt tới file: {args.logfile}")
         except Exception as log_e:
-            logging.error(f"Failed to configure file logging to {args.logfile}: {log_e}") # Log lỗi này ra console
+            logging.error(f"Không thể cấu hình logging file tới {args.logfile}: {log_e}")
+    if log_level > logging.DEBUG: # Giảm output từ thư viện bên thứ ba
+        for lib_logger_name in ["urllib3", "requests", "chardet"]:
+            logging.getLogger(lib_logger_name).setLevel(logging.WARNING)
 
-    if log_level > logging.DEBUG:
-        logging.getLogger("urllib3").setLevel(logging.WARNING)
-        logging.getLogger("chardet").setLevel(logging.WARNING)
-
-    logger.info("Initializing SQL Injection Scanner...")
+    # --- Khởi tạo Scanner ---
+    logger.info("🏁 Khởi tạo SQL Injection Scanner...")
     scanner = None
     try:
-        scanner = AdvancedSQLInjector(config_file=args.config)
-        parsed_original_url = urlparse(args.url)
-        if not parsed_original_url.path or parsed_original_url.path.endswith('/'):
-             scanner.base_scan_url = args.url.rstrip('/') + '/'
+        scanner = AdvancedSQLInjector(config_file=args.config) # AdvancedSQLInjector phải được import đúng
+        parsed_cli_url = urlparse(args.url)
+        if not (parsed_cli_url.scheme and parsed_cli_url.netloc):
+            logger.critical(f"URL đầu vào --url '{args.url}' phải là một URL tuyệt đối (ví dụ: http://example.com).")
+            sys.exit(1)
+        
+        # Thiết lập base_scan_url dựa trên args.url
+        if parsed_cli_url.path == "" or parsed_cli_url.path.endswith('/'):
+            scanner.base_scan_url = args.url.rstrip('/') + '/'
         else:
-             scanner.base_scan_url = urljoin(args.url, os.path.dirname(parsed_original_url.path).rstrip('/')+'/')
-        logger.info(f"Scanner initialized. Base scan URL set to: {scanner.base_scan_url}")
+            # Lấy thư mục cha của path, đảm bảo nó kết thúc bằng /
+            base_path_dir = os.path.dirname(parsed_cli_url.path)
+            if not base_path_dir.endswith('/'): base_path_dir += '/'
+            scanner.base_scan_url = urljoin(args.url, base_path_dir)
+        logger.info(f"Scanner đã khởi tạo. Base scan URL được đặt thành: {scanner.base_scan_url}")
+
+    except NameError: # Nếu AdvancedSQLInjector chưa được import
+        logger.critical("Lớp AdvancedSQLInjector không được tìm thấy. Hãy đảm bảo bạn đã import đúng.")
+        sys.exit(1)
     except Exception as init_e:
-        logger.critical(f"Failed to initialize scanner: {init_e}", exc_info=True); sys.exit(1)
+        logger.critical(f"Không thể khởi tạo scanner: {init_e}", exc_info=True)
+        sys.exit(1)
 
-    # --- Chuẩn bị danh sách Target (giữ nguyên) ---
-    targets_to_scan = set()
-    targets_to_scan.add(scanner.base_scan_url)
-    if args.url != scanner.base_scan_url: targets_to_scan.add(args.url); logger.debug(f"Added original file target: {args.url}")
-    for target in scanner.additional_targets:
-        abs_target = urljoin(scanner.base_scan_url, target); targets_to_scan.add(abs_target); logger.debug(f"Added target from config [additional]: {abs_target}")
-    for api_def in scanner.api_definitions:
-        path = api_def.get('path')
-        if path: abs_path = urljoin(scanner.base_scan_url, path); targets_to_scan.add(abs_path); logger.debug(f"Added target from config [api]: {abs_path}")
+    # --- Chuẩn bị các tác vụ quét ban đầu ---
+    tasks_to_submit_queue = collections.deque()
+    processed_or_queued_urls = set() # Lưu trữ URL đã chuẩn hóa (tuyệt đối, không fragment)
 
-    # --- Chạy Discovery (giữ nguyên) ---
-    if scanner.discovery_config.get('enabled', False):
-        discovered_targets = scanner.discover_targets(scanner.base_scan_url)
-        for target in discovered_targets: targets_to_scan.add(target)
+    def add_task_to_queue_if_new(task_item):
+        url_to_check_in_task = ""
+        if isinstance(task_item, str):
+            url_to_check_in_task = task_item
+        elif isinstance(task_item, dict) and 'url' in task_item:
+            url_to_check_in_task = task_item['url']
+        else: return False # Không phải định dạng task hợp lệ
 
-    # --- Chạy quét trên từng Target (giữ nguyên) ---
-    final_target_list = sorted(list(targets_to_scan))
-    logger.info(f"--- Starting scan for {len(final_target_list)} unique targets ---")
+        absolute_url = urljoin(scanner.base_scan_url, url_to_check_in_task)
+        canonical_url = urlunparse(urlparse(absolute_url)._replace(fragment=""))
+
+        if canonical_url not in processed_or_queued_urls:
+            processed_or_queued_urls.add(canonical_url)
+            tasks_to_submit_queue.append(task_item)
+            # logger.debug(f"📥 Đã thêm vào hàng đợi: '{canonical_url}'")
+            return True
+        return False
+
+    logger.info("🔍 Đang chuẩn bị các mục tiêu quét ban đầu...")
+    for target_obj_from_config in scanner.additional_targets: # Từ additional_targets.yaml
+        add_task_to_queue_if_new(target_obj_from_config)
+
+    initial_simple_urls = set()
+    initial_simple_urls.add(args.url) # URL từ dòng lệnh
+    for api_def in scanner.api_definitions: # URL từ định nghĩa API
+        if api_def.get('path'): initial_simple_urls.add(api_def['path'])
+    if scanner.discovery_config.get('enabled', False): # URL từ discovery
+        discovered_urls = scanner.discover_targets(scanner.base_scan_url)
+        for disc_url in discovered_urls: initial_simple_urls.add(disc_url)
+    for url_s_to_add in sorted(list(initial_simple_urls)):
+        add_task_to_queue_if_new(url_s_to_add)
+
+    if not tasks_to_submit_queue:
+        logger.info("Không có mục tiêu nào để quét. Kết thúc.")
+        sys.exit(0)
+
+    # --- Thực thi quét với ThreadPoolExecutor ---
+    logger.info(f"--- 🚀 Bắt đầu quét với {len(tasks_to_submit_queue)} tác vụ ban đầu trong hàng đợi ---")
     scan_successful = True
-    max_workers = scanner.scanner_config.get('max_threads', min(10, os.cpu_count() + 4 if os.cpu_count() else 5))
-    logger.info(f"Using up to {max_workers} threads for scanning.")
+    completed_tasks_count = 0
+    total_submitted_tasks_ever = 0
+    max_workers = scanner.scanner_config.get('max_threads', min(10, (os.cpu_count() or 1) + 4))
+    logger.info(f"Sử dụng tối đa {max_workers} luồng.")
+    active_futures = {} # {future: task_description_string}
+
     try:
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-            # Tạo một future cho mỗi target
-            future_to_url = {executor.submit(scanner.scan_target, target_url): target_url for target_url in final_target_list}
-            
-            processed_count = 0
-            total_targets = len(final_target_list)
+            while tasks_to_submit_queue or active_futures:
+                # Submit tác vụ mới nếu có chỗ và có tác vụ trong hàng đợi
+                while tasks_to_submit_queue and len(active_futures) < max_workers * 2:
+                    current_task_item = tasks_to_submit_queue.popleft()
+                    total_submitted_tasks_ever += 1
+                    task_desc_for_log = ""
+                    if isinstance(current_task_item, str): task_desc_for_log = f"URL: {urljoin(scanner.base_scan_url, current_task_item)}"
+                    elif isinstance(current_task_item, dict): task_desc_for_log = f"Structured: {current_task_item.get('method','GET')} {urljoin(scanner.base_scan_url, current_task_item.get('url','N/A'))}"
+                    
+                    # logger.debug(f"📤 Đang submit tác vụ ({total_submitted_tasks_ever}): {task_desc_for_log}")
+                    future = executor.submit(scanner.scan_target, current_task_item)
+                    active_futures[future] = task_desc_for_log
 
-            for future in concurrent.futures.as_completed(future_to_url):
-                target_url_completed = future_to_url[future]
-                processed_count += 1
-                try:
-                    future.result()  # Lấy kết quả hoặc exception nếu có
-                    logger.info(f"Finished scanning target {processed_count}/{total_targets}: {target_url_completed}")
-                except Exception as exc:
-                    logger.error(f"Target {target_url_completed} generated an exception: {exc}", exc_info=True)
-                    scan_successful = False # Đánh dấu thất bại nếu có lỗi nghiêm trọng trong một luồng
-                except KeyboardInterrupt: # Xử lý ngắt từ bàn phím trong luồng
-                    logger.warning(f"Scan for {target_url_completed} interrupted by user.")
-                    # Quyết định xem có nên hủy các future khác không
-                    # executor.shutdown(wait=False, cancel_futures=True) # Cần Python 3.9+
-                    # Hoặc đơn giản là để các luồng khác hoàn thành
-                    scan_successful = False
-                    break # Thoát khỏi vòng lặp chờ future
-    except KeyboardInterrupt: logger.warning("Scan interrupted by user."); scan_successful = False
-    except Exception as main_e: logger.critical(f"Uncaught exception during scan loop: {main_e}", exc_info=True); scan_successful = False
-    finally: pass # OOB check nếu có
+                if not active_futures: break # Không còn future nào đang chạy, thoát
 
-    # --- Generate Report (giữ nguyên) ---
+                done_futures, _ = concurrent.futures.wait(active_futures.keys(), timeout=1.0, return_when=concurrent.futures.FIRST_COMPLETED)
+
+                for future in done_futures:
+                    completed_tasks_count += 1
+                    task_description = active_futures.pop(future)
+                    try:
+                        newly_discovered_links = future.result() # scanner.scan_target trả về list link mới
+                        logger.info(f"✅ ({completed_tasks_count}/{total_submitted_tasks_ever}) Hoàn thành: {task_description}")
+                        if newly_discovered_links:
+                            link_plural = "link" if len(newly_discovered_links) == 1 else "links"
+                            logger.info(f"🔗 Khám phá được {len(newly_discovered_links)} {link_plural} mới từ '{task_description.split(': ',1)[-1]}'")
+                            for new_link_str in newly_discovered_links:
+                                add_task_to_queue_if_new(new_link_str)
+                    except KeyboardInterrupt:
+                        logger.warning(f"⚠️ Tác vụ bị dừng (KeyboardInterrupt trong worker): {task_description}")
+                        scan_successful = False
+                        active_futures.clear()
+                        tasks_to_submit_queue.clear()
+                        raise
+                    except Exception as exc_worker:
+                        logger.error(f"❌ ({completed_tasks_count}/{total_submitted_tasks_ever}) Lỗi tác vụ '{task_description}': {exc_worker}", exc_info=True)
+                        scan_successful = False
+                
+                if not done_futures and not tasks_to_submit_queue and not active_futures: break
+    except KeyboardInterrupt:
+        logger.warning("🚦 Quá trình quét bị dừng bởi người dùng (Ctrl+C ở luồng chính).")
+        scan_successful = False
+    except Exception as main_loop_exc:
+        logger.critical(f"💥 Lỗi nghiêm trọng trong vòng lặp quản lý tác vụ: {main_loop_exc}", exc_info=True)
+        scan_successful = False
+    finally:
+        logger.info(f"--- 📬 Hoàn tất vòng lặp quản lý tác vụ. Trong hàng đợi: {len(tasks_to_submit_queue)}. Đang hoạt động (nếu lỗi): {len(active_futures)} ---")
+        logger.info(f"--- Tổng số tác vụ đã submit: {total_submitted_tasks_ever}. Số tác vụ đã xử lý: {completed_tasks_count} ---")
+
+    # --- Tạo Báo Cáo ---
     if scanner:
-        logger.info("--- Generating Report ---")
-        try: report_generator = ReportGenerator() # Giả sử lớp này tồn tại
-        except NameError: logger.error("ReportGenerator class not defined."); report_generator = None
-
+        logger.info("--- 📊 Đang tạo báo cáo ---")
+        report_generator = None # Khởi tạo trước try-except
+        try:
+            report_generator = ReportGenerator() # ReportGenerator phải được import đúng
+        except NameError:
+            logger.error("Lớp ReportGenerator không được tìm thấy. Không thể tạo báo cáo.")
+        
         if report_generator:
             try:
                 vulnerabilities_found = scanner.generate_report()
+                log_msg = f"Tìm thấy tổng cộng {len(vulnerabilities_found)} lỗ hổng." if vulnerabilities_found else "Không tìm thấy lỗ hổng nào."
+                logger.info(log_msg)
+                
                 report_file_path = report_generator.generate(vulnerabilities_found, args.report)
-                print(f"Report saved to {report_file_path}")
-                logger.info(f"Scan finished. Found {len(vulnerabilities_found)} vulnerabilities. Report saved to {report_file_path}")
-            except FileNotFoundError as report_fnf_e: logger.error(f"Failed to generate report: Template file error - {report_fnf_e}. Check 'templates/report.html'.")
-            except Exception as report_e: logger.error(f"Failed to generate report: {report_e}", exc_info=True)
-    else: logger.error("Scanner object not available, cannot generate report.")
+                if report_file_path:
+                    logger.info(f"Báo cáo đã được lưu tại: {os.path.abspath(report_file_path)}")
+                    print(f"\nBáo cáo đã được lưu tại: {os.path.abspath(report_file_path)}")
+                else:
+                    logger.error("Không thể tạo file báo cáo (ReportGenerator.generate trả về None).")
+            except FileNotFoundError as report_fnf_e:
+                logger.error(f"Lỗi tạo báo cáo: Không tìm thấy file template - {report_fnf_e}. Kiểm tra 'templates/report.html'.")
+            except Exception as report_gen_e:
+                logger.error(f"Lỗi tạo báo cáo: {report_gen_e}", exc_info=True)
+    else:
+        logger.error("Đối tượng scanner không tồn tại, không thể tạo báo cáo.")
 
-    logger.info("Scanner execution finished.") # Log cuối cùng
-    if not scan_successful: sys.exit(1)
+    logger.info("--- 🏁 Kết thúc quá trình quét ---")
+    if not scan_successful:
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()

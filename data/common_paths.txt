@@ -32,6 +32,7 @@ uploads
 download
 phpinfo
 info
+update
 status
 server-status
 .git/config

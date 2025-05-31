@@ -1,5 +1,5 @@
 from bs4 import BeautifulSoup, SoupStrainer
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse,urlunparse
 import re
 
 class AdvancedHTMLParser:
@@ -11,7 +11,7 @@ class AdvancedHTMLParser:
     }
 
     def __init__(self, html_content, base_url):
-        self.strainer = SoupStrainer(['form', 'script'])
+        self.strainer = SoupStrainer(['form', 'script','a'])
         self.soup = BeautifulSoup(html_content, 'lxml', parse_only=self.strainer)
         self.base_url = base_url
         self.dynamic_forms = []
@@ -50,6 +50,30 @@ class AdvancedHTMLParser:
                     'required': 'required' in tag.attrs
                 })
         return inputs
+    def extract_links(self, same_domain_only=True):
+        extracted_links = set()
+        for a_tag in self.soup.find_all('a', href=True): 
+            href_value = a_tag['href'].strip()
+
+            if not href_value or \
+               href_value.startswith('#') or \
+               href_value.lower().startswith(('mailto:', 'javascript:', 'tel:', 'ftp:')):
+                continue
+
+            full_url = self._get_full_url(href_value)
+            parsed_full_url = urlparse(full_url)
+
+            if parsed_full_url.scheme not in ['http', 'https']:
+                continue
+
+            if same_domain_only:
+                if parsed_full_url.netloc != self.parsed_base_url.netloc:
+                    continue
+            
+            cleaned_url = urlunparse(parsed_full_url._replace(fragment=""))
+            extracted_links.add(cleaned_url)
+            
+        return list(extracted_links)
 
     def _get_full_url(self, action):
         return urljoin(self.base_url, action) if action else self.base_url

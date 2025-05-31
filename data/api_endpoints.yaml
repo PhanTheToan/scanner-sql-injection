@@ -1,0 +1,110 @@
+# data/api_endpoints.yaml
+
+- path: "/api/get_user.php"       
+  method: "GET"                   
+  params_in: "query"              
+  params_to_test: ["id", "user_id"]
+- path: "/api/update_user"
+  method: "POST"
+  params_in: "body_json"
+  params_to_test: ["userId", "email", "profile.description"]
+  json_template: 
+    userId: 1
+    name: "Test User"
+    email: "test@example.com"
+    profile:
+      description: "Default description"
+      isActive: true
+
+- path: "/api/search_items"
+  method: "POST"
+  params_in: "body_form"
+  params_to_test: ["query", "category_id"]
+
+
+
+
+- path: "/api/v1/products/{product_id}" 
+  method: "PUT"
+  params_in: "body_json"
+  params_to_test: ["name", "description", "price_details.amount", "supplier_info.id"]
+  json_template:
+    name: "Updated Product Name"
+    description: "Updated description."
+    price_details:
+      amount: 99.99
+      currency: "USD"
+    stock: 100
+    supplier_info:
+      id: "SUP-001"
+      name: "Main Supplier"
+
+
+- path: "/api/v1/items" # Ví dụ: /api/v1/items?itemId=XYZ123&cascade=true
+  method: "DELETE"
+  params_in: "query"
+  params_to_test: ["itemId", "user_token", "filter"]
+
+- path: "/graphql"
+  method: "POST"
+  params_in: "body_json"
+
+  params_to_test:
+    - "variables.userId"
+    - "variables.searchTerm"
+    - "variables.commentData.text" # Ví dụ trường lồng nhau trong variables
+  json_template:
+    query: |
+      query GetUserData($userId: ID!, $searchTerm: String) {
+        user(id: $userId) {
+          id
+          name
+          posts(search: $searchTerm) {
+            title
+            content
+          }
+        }
+      }
+      mutation AddComment($commentData: CommentInput!) {
+        addComment(data: $commentData) {
+          id
+          text
+        }
+      }
+    variables: 
+      userId: "1" 
+      searchTerm: "example" 
+      commentData:
+        postId: "post123"
+        text: "Original comment text" 
+- path: "/xmlrpc_api" # Hoặc /soap_api
+  method: "POST"
+  params_in: "body_xml"
+  headers: 
+    "Content-Type": "application/xml; charset=utf-8"
+    "SOAPAction": "http://tempuri.org/IService/GetData" # Ví dụ header cho SOAP
+  params_to_test:
+    - "USER_ID_PLACEHOLDER"   
+    - "SEARCH_TERM_PLACEHOLDER"
+  body_template: |
+    <?xml version="1.0" encoding="utf-8"?>
+    <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+      <soap:Body>
+        <GetData xmlns="http://tempuri.org/">
+          <userId>USER_ID_PLACEHOLDER</userId>
+          <searchTerm>SEARCH_TERM_PLACEHOLDER</searchTerm>
+        </GetData>
+      </soap:Body>
+    </soap:Envelope>
+
+# --- Các Lưu Ý Về Payload và Kỹ Thuật Tấn Công API ---
+# 1.  Payloads từ `payloads.txt` (ví dụ: data/payloads.txt) sẽ được sử dụng.
+# 2.  Đối với JSON/XML:
+#     -   Các payload hiện tại được chèn trực tiếp. Điều này có thể làm hỏng cấu trúc JSON/XML nếu payload chứa các ký tự đặc biệt (ví dụ: ", {, }).
+#     -   Trong một số trường hợp, payload cần được escape cho phù hợp với JSON/XML trước khi được server xử lý và gây ra SQLi. (Scanner hiện tại chưa tự động escape).
+#     -   Ví dụ payload cho JSON: `\" OR 1=1 --` (đã escape dấu nháy kép).
+# 3.  Header Injection: Nếu ứng dụng sử dụng giá trị từ HTTP Header (ví dụ: `X-Forwarded-For`, `Cookie`, `User-Agent`, các header tùy chỉnh như `X-API-Key`, `X-User-ID`) để xây dựng câu lệnh SQL, chúng cũng có thể là điểm tấn công.
+#     -   Bạn có thể định nghĩa `headers` trong API definition để gửi các header tĩnh.
+#     -   Để inject vào giá trị header, cần một cơ chế riêng hoặc tùy chỉnh `HTTPClient` (ví dụ: cho phép inject vào header). Hiện tại `params_to_test` không áp dụng cho header.
+# 4.  Kiểm tra cả NoSQL Injection nếu backend sử dụng cơ sở dữ liệu NoSQL, tuy nhiên payloads sẽ khác biệt đáng kể.
+# 5.  Path Parameter Injection: Đối với các tham số trên đường dẫn (ví dụ: /api/items/{item_id}), bạn cần tạo các URL mục tiêu hoàn chỉnh (ví dụ: /api/items/your_sqli_payload) trong danh sách `additional_targets` hoặc `scan_urls` để `_scan_url_parameters` (nếu nó có thể xử lý) hoặc việc gửi request trực tiếp có thể thử nghiệm chúng.

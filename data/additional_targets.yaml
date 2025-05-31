@@ -1,0 +1,36 @@
+
+- url: "http://localhost:8000/profile.php"
+
+
+- url: "http://localhost:8000/search.php?query=initial_value&category=books"
+
+- url: "/admin/" 
+- url: "/login/" 
+
+- url: "/api/legacy_submit_form" 
+  method: "POST"
+  params_in: "body_form"  
+  base_data:              
+    action: "submit_data"
+    csrf_token: "static_token_example" 
+  params_to_test: ["user_comment", "item_id"]
+
+- url: "http://localhost:8000/api/v1/feedback"
+  method: "POST"
+  params_in: "body_json"
+  base_data:
+    type: "general_feedback"
+    meta_info: { "source": "web_client", "version": "1.0" }
+    user_rating: 5
+  params_to_test: ["feedback_message", "user_email", "meta_info.source"] 
+
+- url: "/api/v1/user_settings" 
+  method: "PUT"
+  params_in: "body_json"
+  base_data:
+    theme: "dark"
+    notifications_enabled: true
+  params_to_test: ["theme"]
+
+- url: "/config/" # [cite: 1]
+- url: "/api/v1/" # [cite: 1]
