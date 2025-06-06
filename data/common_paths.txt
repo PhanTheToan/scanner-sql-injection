@@ -9,13 +9,6 @@ search
 test
 tests
 dev
-api
-api/v1
-api/v2
-api/seach
-api/get_user
-api/update_user
-api/search_item
 config
 configuration
 settings
@@ -34,6 +27,13 @@ phpinfo
 info
 update
 status
+api
+api/v1
+api/v2
+api/seach
+api/get_user
+api/update_user
+api/search_item
 server-status
 .git/config
 .env
