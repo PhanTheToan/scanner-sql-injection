@@ -1,7 +1,11 @@
 # 🛡️ Advanced SQL Injection Scanner
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python Version](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
+[![Python Version](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/) 
+[![Next.js](https://img.shields.io/badge/Next.js-11.1.3-brightgreen.svg)](https://nextjs.org/) 
+[![HTML5](https://img.shields.io/badge/HTML5-E34F26.svg?logo=html5&logoColor=white)](https://developer.mozilla.org/en-US/docs/Web/HTML) 
+[![PHP](https://img.shields.io/badge/PHP-7.4+-blue.svg)](https://www.php.net/)
+
 
 Một công cụ quét lỗ hổng SQL injection mạnh mẽ, được thiết kế để tự động phát hiện các điểm yếu trong ứng dụng web. Công cụ này có khả năng phân tích form, khám phá các endpoint ẩn, thực hiện quét sau khi đã xác thực và kiểm thử các API phức tạp.
 
