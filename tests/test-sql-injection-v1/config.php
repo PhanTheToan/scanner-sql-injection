@@ -1,5 +1,5 @@
 <?php
-$host = 'localhost';
+$host = '172.18.77.188';
 $dbname = 'sql_injection_test';
 $username = 'admin';
 $password = '123456';
