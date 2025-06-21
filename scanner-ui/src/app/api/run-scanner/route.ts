@@ -1,43 +1,57 @@
 import { NextResponse } from "next/server";
 import { exec } from "child_process";
 import { promisify } from "util";
-import path from "path";
+import fs from "fs";
 
 const execPromise = promisify(exec);
 
 export async function POST(request: Request) {
   try {
-    const { url, config, report, logfile, loglevel } = await request.json();
+    const body = await request.json();
+    console.log("Request body:", body);
 
-    // Xác thực tham số
-    if (!url || !config || !report || !logfile || !loglevel) {
-      return NextResponse.json({ error: "Thiếu tham số bắt buộc" }, { status: 400 });
+    const { url, config, report, logfile, loglevel } = body;
+    console.log("Parsed parameters:", { url, config, report, logfile, loglevel });
+
+    // Kiểm tra tham số config
+    if (!config) {
+      console.log("Config parameter is missing or undefined");
+      return NextResponse.json(
+        { error: "Config parameter is required" },
+        { status: 400 }
+      );
     }
 
-    // Đường dẫn dự án
-    const projectDir = "/media/ptt/New Volume/HUST/2024.2/project2/scanner-sql-injection";
+    // Project directory (đường dẫn mới)
+    const projectDir = "/home/toan_phan/scanner-sql-injection";
+    const configPath = `${projectDir}/${config}`;
+    console.log("Config path:", configPath);
 
-    // Kiểm tra sự tồn tại của file config.yaml
-    const fs = require("fs");
-    const configPath = path.resolve(projectDir, config);
-    console.log("Checking config path:", configPath);
-    if (!fs.existsSync(configPath)) {
-      return NextResponse.json({ error: `File config ${config} không tồn tại tại ${configPath}` }, { status: 400 });
+    // Kiểm tra file
+    const configExists = fs.existsSync(configPath);
+    console.log("Config file exists:", configExists);
+
+    if (!configExists) {
+      console.log("Config file check failed:", configPath);
+      return NextResponse.json(
+        { error: `Config file ${config} does not exist at ${configPath}` },
+        { status: 400 }
+      );
     }
 
-    // Sử dụng Python trong venv trực tiếp
-    const pythonPath = path.resolve(projectDir, ".venv/bin/python");
-    const command = `"${pythonPath}" -m src.scanner --url "${url}" --config "${config}" --report "${report}" --loglevel "${loglevel}" --logfile "${logfile}"`;
+    // Lệnh Python
+    const pythonPath = `${projectDir}/.venv/bin/python`;
+    const command = `${pythonPath} -m src.scanner --url '${url || 'http://localhost:8000'}' --config '${config}' --report '${report || 'report.html'}' --loglevel '${loglevel || 'DEBUG'}' --logfile '${logfile || 'scanner.log'}'`;
 
     console.log("Running command:", command);
 
-    // Chạy lệnh
     const { stdout, stderr } = await execPromise(command, {
       cwd: projectDir,
       shell: "/bin/bash",
     });
 
-    return NextResponse.json({ message: "Scanner chạy thành công", stdout, stderr });
+    console.log("Command output:", { stdout, stderr });
+    return NextResponse.json({ message: "Scanner ran successfully", stdout, stderr });
   } catch (error: any) {
     console.error("Error executing command:", error);
     return NextResponse.json(

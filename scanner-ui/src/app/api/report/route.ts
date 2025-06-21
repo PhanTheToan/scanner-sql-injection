@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 
-const reportFilePath = path.resolve('../../../../report.html');
+const reportFilePath = path.resolve('/home/toan_phan/scanner-sql-injection/report.html');
 
 export async function GET() {
   try {

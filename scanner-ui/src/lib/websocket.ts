@@ -15,7 +15,7 @@ export function startWebSocketServer() {
         const { logfile } = JSON.parse(message.toString());
         if (!logfile) return;
 
-        const projectDir = "/media/ptt/New Volume/HUST/2024.2/project2/scanner-sql-injection";
+        const projectDir = "/home/toan_phan/scanner-sql-injection";
         const logFilePath = path.resolve(projectDir, logfile);
 
         console.log("Watching logfile:", logFilePath);

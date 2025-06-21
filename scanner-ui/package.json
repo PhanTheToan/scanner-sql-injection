@@ -7,11 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "ws": "ts-node -r tsconfig-paths/register --compiler-options '{\"module\":\"commonjs\"}' src/lib/start-server.ts"
+    "ws": "ts-node -r tsconfig-paths/register src/lib/start-server.ts"
   },
   "dependencies": {
     "lucide-react": "^0.508.0",
-    "next": "14.2.3",
+    "next": "^14.2.30",
     "react": "^18",
     "react-dom": "^18",
     "ws": "^8.18.0"
