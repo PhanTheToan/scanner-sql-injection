@@ -292,14 +292,14 @@
             position: sticky;
             top: 0;
             z-index: 10;
-            color: #333 !important;
+            color: #333;
         }
 
         td {
             padding: 15px;
             border-bottom: 1px solid #e9ecef;
             vertical-align: top;
-            color: #333 !important;
+            color: #333;
         }
 
         tr:hover {
@@ -448,7 +448,7 @@
         <div class="header">
             <h1><i class="fas fa-shield-alt"></i> SQL Injection Vulnerability Report</h1>
             <div class="subtitle">Security Assessment Results</div>
-            <div class="generated-time">Generated at: {{ meta.generated_at }}</div>
+            <div class="generated-time">Generated at: 2025-06-22T02:43:50.113814</div>
         </div>
 
         <div class="actions-bar">
@@ -472,33 +472,17 @@
         <div class="content">
             <div class="stats-grid">
                 <div class="stat-card total">
-                    <div class="stat-number">{{ stats.total }}</div>
+                    <div class="stat-number">0</div>
                     <div class="stat-label">Total Vulnerabilities</div>
                 </div>
-                {% for severity, count in stats.severity_distribution.items() %}
-                <div class="stat-card {{ severity }}">
-                    <div class="stat-number">{{ count }}</div>
-                    <div class="stat-label">{{ severity.title() }}</div>
-                </div>
-                {% endfor %}
+                
             </div>
 
             <div class="severity-chart">
                 <div class="chart-title">
                     <i class="fas fa-chart-pie"></i> Severity Distribution
                 </div>
-                {% for severity, count in stats.severity_distribution.items() %}
-                {% set percentage = (count / stats.total * 100) | round(1) %}
-                <div class="severity-bar">
-                    <div class="severity-label">
-                        <span>{{ severity.title() }}</span>
-                        <span>{{ count }} ({{ percentage }}%)</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill {{ severity }}" style="width: {{ percentage }}%"></div>
-                    </div>
-                </div>
-                {% endfor %}
+                
             </div>
 
             <div class="table-container">
@@ -508,10 +492,7 @@
                     </div>
                     <div class="filter-tabs">
                         <button class="filter-tab active" onclick="filterBySeverity('all')">All</button>
-                        {% for severity in stats.severity_distribution.keys() %}
-                        <button class="filter-tab" onclick="filterBySeverity('{{ severity }}')">{{ severity.title()
-                            }}</button>
-                        {% endfor %}
+                        
                     </div>
                 </div>
 
@@ -533,22 +514,7 @@
                             </tr>
                         </thead>
                         <tbody id="vulnerabilityTableBody">
-                            {% for finding in findings %}
-                            <tr data-severity="{{ finding.severity }}">
-                                <td>{{ loop.index }}</td>
-                                <td>{{ finding.name }}</td>
-                                <td>{{ finding.description }}</td>
-                                <td><span class="severity-badge severity-{{ finding.severity }}">{{
-                                        finding.severity.upper() }}</span></td>
-                                <td>
-                                    <div class="payload-cell">{{ finding.payload }}</div>
-                                </td>
-                                <td><span class="input-field-tag">{{ finding.input_field or 'N/A' }}</span></td>
-                                <td>
-                                    <div class="url-cell">{{ finding.url }}</div>
-                                </td>
-                            </tr>
-                            {% endfor %}
+                            
                         </tbody>
                     </table>
                 </div>
@@ -569,8 +535,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script>
         // Store original data for filtering
-        const vulnerabilityData = {{ findings | tojson }};
-        const statsData = {{ stats | tojson }};
+        const vulnerabilityData = [];
+        const statsData = {"severity_distribution": {}, "total": 0};
         let filteredData = [...vulnerabilityData];
         let currentFilter = 'all';
 
@@ -648,19 +614,14 @@
                     // Summary sheet
                     const summaryData = [
                         ['SQL Injection Vulnerability Report'],
-                        ['Generated at:', '{{ meta.generated_at }}'],
+                        ['Generated at:', '2025-06-22T02:43:50.113814'],
                         [''],
                         ['Summary Statistics'],
-                        ['Total Vulnerabilities:', {{ stats.total }}],
-                {% for severity, count in stats.severity_distribution.items() %}
-                ['{{ severity.title() }}:', {{ count }}],
-                {% endfor %}
+                        ['Total Vulnerabilities:', 0],
+                
         [''],
             ['Severity Distribution'],
-            {% for severity, count in stats.severity_distribution.items() %}
-        {% set percentage = (count / stats.total * 100) | round(1) %}
-        ['{{ severity.title() }} ({{ percentage }}%)', '{{ count }} vulnerabilities'],
-            {% endfor %}
+            
                     ];
 
         const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
@@ -724,11 +685,9 @@
 
         function generateSummary() {
             let summary = 'Security Assessment Summary:\n\n';
-            {% for severity, count in stats.severity_distribution.items() %}
-            summary += '{{ "🔴" if severity == "critical" else "🟡" if severity == "high" else "🟢" if severity == "medium" else "⚪" }} {{ severity.title() }} Vulnerabilities: {{ count }}\n';
-            {% endfor %}
+            
 
-            summary += '\nTotal: {{ stats.total }} vulnerabilities found\n\n';
+            summary += '\nTotal: 0 vulnerabilities found\n\n';
             summary += 'Recommendation:\n';
             summary += '- Immediately address all critical vulnerabilities\n';
             summary += '- Prioritize high-severity issues\n';

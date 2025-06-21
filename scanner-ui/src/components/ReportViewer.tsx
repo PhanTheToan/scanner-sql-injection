@@ -27,6 +27,7 @@ export default function ReportViewer() {
       {reportContent && (
         <div
           className="mt-4 p-4 bg-white rounded-lg shadow"
+          style={{ color: '#333' }}
           dangerouslySetInnerHTML={{ __html: reportContent }}
         />
       )}
